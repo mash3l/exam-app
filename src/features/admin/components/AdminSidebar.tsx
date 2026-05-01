@@ -13,17 +13,20 @@ import {
   LogOut,
   AppWindow
 } from "lucide-react";
+import type { AppSession } from "@/types/auth";
 
+// شيلنا الـ href الحقيقي من هنا عشان ميكونش ليه أي تأثير
 const ADMIN_LINKS = [
   { href: "/admin/diplomas", icon: GraduationCap, label: "Diplomas" },
   { href: "/admin/exams", icon: BookOpen, label: "Exams" },
-  { href: "/account/profile", icon: UserIcon, label: "Account Settings" },
+  { href: "#", icon: UserIcon, label: "Account Settings", isDead: true }, 
   { href: "/admin/audit-log", icon: ClipboardList, label: "Audit Log" },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const typedSession = session as AppSession | null;
   
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -38,19 +41,17 @@ export function AdminSidebar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const userName = (session?.user as any)?.firstName || session?.user?.name || "Firstname";
-  const userEmail = session?.user?.email || "user-email@example.com";
-  const userImage = session?.user?.image || "https://github.com/shadcn.png"; 
+  const userName = typedSession?.user?.name || "Firstname";
+  const userEmail = typedSession?.user?.email || "user-email@example.com";
+  const userImage = typedSession?.user?.image || "https://github.com/shadcn.png";
 
   return (
-    // اللون هنا هو الكحلي الغامق جداً بتاع فيجما والمقاس أصغر
-    <aside className="w-[250px] min-w-[280px] h-screen sticky top-0 flex flex-col bg-[#1E293B] text-slate-300 z-50">
+    <aside className="w-[250px] h-screen sticky left-0 min-w-[280px] h-screen sticky top-0 flex flex-col bg-[#1E293B] text-slate-300 z-50">
       
       {/* 1. منطقة اللوجو */}
       <div className="p-7 pb-8 border-b border-white/5">
         <h1 className="text-white text-[22px] font-black tracking-wide mb-1">ELEVATE</h1>
         <div className="flex items-center gap-2 text-white/90 font-mono text-[12px] font-medium">
-          {/* أيقونة < > بتاعة فيجما */}
           <span className="border border-white/40 rounded-[3px] px-1 text-[9px] tracking-tighter">&lt; &gt;</span> 
           Exam App
         </div>
@@ -59,8 +60,21 @@ export function AdminSidebar() {
       {/* 2. الروابط */}
       <nav className="flex-1 px-3 py-6 space-y-1">
         {ADMIN_LINKS.map((link) => {
-          const isActive = pathname.startsWith(link.href);
+          const isActive = !link.isDead && pathname.startsWith(link.href);
           const Icon = link.icon;
+
+          //   خيال المآتة (لا بيتداس ولا بيعمل هوفر ولا ليه لينك)  
+          if (link.isDead) {
+            return (
+              <div
+                key={link.label}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-sm text-[13px] font-medium text-slate-500 opacity-40 pointer-events-none select-none"
+              >
+                <Icon size={18} strokeWidth={2} />
+                {link.label}
+              </div>
+            );
+          }
 
           return (
             <Link
@@ -68,7 +82,7 @@ export function AdminSidebar() {
               href={link.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-sm text-[13px] font-medium transition-colors ${
                 isActive 
-                  ? "text-white bg-[#334155]" // لون الـ Active الهادي بتاع فيجما
+                  ? "text-white bg-[#334155]" 
                   : "text-slate-400 hover:text-white hover:bg-slate-800"
               }`}
             >
@@ -79,20 +93,23 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      {/* 3. منطقة البروفايل تحت خالص */}
+      {/* 3. منطقة البروفايل */}
       <div className="relative p-4 border-t border-white/5" ref={profileRef}>
         {isProfileOpen && (
           <div className="absolute bottom-[100%] left-4 mb-2 w-[210px] bg-white border border-gray-200 shadow-lg animate-in fade-in zoom-in-95 duration-100 text-slate-700 text-[12px] rounded-sm">
-            <button className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left font-medium">
-              <UserIcon size={14} className="text-gray-400" /> Account
-            </button>
-            <button className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left font-medium">
-              <AppWindow size={14} className="text-gray-400" /> Application
-            </button>
+            
+            {/* خيال مآتة لزراير البروفايل برضه */}
+            <div className="w-full px-4 py-2.5 flex items-center gap-3 text-gray-300 font-medium pointer-events-none select-none">
+              <UserIcon size={14} className="text-gray-300" /> Account
+            </div>
+            <div className="w-full px-4 py-2.5 flex items-center gap-3 text-gray-300 font-medium pointer-events-none select-none">
+              <AppWindow size={14} className="text-gray-300" /> Application
+            </div>
+            
             <div className="border-t border-gray-100 my-1"></div>
             <button 
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-red-50 text-[#F04438] transition-colors text-left font-medium"
+              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-red-50 text-[#F04438] transition-colors text-left font-medium cursor-pointer"
             >
               <LogOut size={14} /> Logout
             </button>

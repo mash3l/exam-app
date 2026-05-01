@@ -8,6 +8,7 @@ import { Ban, Edit2, Trash2, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { toast } from "sonner";
 import type { Exam, Question, QuestionOption } from "@/types/models";
+import type { AppSession } from "@/types/auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
 
@@ -15,7 +16,9 @@ export default function ViewQuestionPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const token = (session as any)?.accessToken;
+  const typedSession = session as AppSession | null;
+  const token = typedSession?.accessToken;
+  const isSuperAdmin = typedSession?.user?.role === "SUPER_ADMIN";
   
   const examId = params.id as string;
   const questionId = params.questionId as string;
@@ -29,38 +32,21 @@ export default function ViewQuestionPage() {
 
     async function fetchExamAndQuestion() {
       try {
-        // 1. هنجيب داتا الامتحان كالعادة
         const examRes = await fetch(`${BASE_URL}/api/exams/${examId}`, { headers: { Authorization: `Bearer ${token}` } });
         if (examRes.ok) {
           const examData = await examRes.json();
           setExam(examData.payload?.exam || examData.payload || examData);
         }
 
-        // 2. هنا السحر: لو الـ ID وهمي، هنعبي داتا وهمية من غير ما نكلم الباك إند
-        if (questionId.startsWith("dummy-")) {
-          setQuestion({
-            _id: questionId,
-            title: questionId === "dummy-1" ? "What does REST stand for in web development?" : "Explain the Virtual DOM in React.",
-            options: [
-              { text: "Representational State Transfer", isCorrect: true },
-              { text: "Random Early Simple Transmission", isCorrect: false },
-              { text: "Realtext State Transfer", isCorrect: false },
-              { text: "None of the above", isCorrect: false }
-            ]
-          });
+        const questionRes = await fetch(`${BASE_URL}/api/questions/${questionId}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (questionRes.ok) {
+          const questionData = await questionRes.json();
+          setQuestion(questionData.payload?.question || questionData.payload || questionData);
         } else {
-          // لو الـ ID حقيقي، هنكلم الباك إند عادي جداً
-          const questionRes = await fetch(`${BASE_URL}/api/questions/${questionId}`, { headers: { Authorization: `Bearer ${token}` } });
-          if (questionRes.ok) {
-            const questionData = await questionRes.json();
-            setQuestion(questionData.payload?.question || questionData.payload || questionData);
-          } else {
-            toast.error("Failed to load question details");
-          }
+          toast.error("Failed to load question details");
         }
 
       } catch (error) {
-        console.error("Error fetching data:", error);
         toast.error("Network error");
       } finally {
         setIsLoading(false);
@@ -72,7 +58,7 @@ export default function ViewQuestionPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[100vh]">
+      <div className="flex h-screen items-center justify-center">
         <Loader2 className="animate-spin text-[#175FFF] w-8 h-8" />
       </div>
     );
@@ -85,6 +71,30 @@ export default function ViewQuestionPage() {
       </div>
     );
   }
+
+  const handleDeleteQuestion = async () => {
+    if (!isSuperAdmin) {
+      toast.error("Only Super Admin can delete questions.");
+      return;
+    }
+    if (!confirm("Are you sure you want to delete this question?")) return;
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/questions/${questionId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await res.json()) as { message?: string };
+      if (!res.ok) {
+        toast.error(data.message || "Failed to delete question.");
+        return;
+      }
+      toast.success("Question deleted successfully.");
+      router.push(`/admin/exams/${examId}`);
+    } catch {
+      toast.error("Network error");
+    }
+  };
 
   return (
     <div className="w-full animate-in fade-in duration-300 pb-10">
@@ -127,13 +137,19 @@ export default function ViewQuestionPage() {
               <Ban size={14} className="mr-2 text-slate-400" /> Immutable
             </Button>
             
-            <Link href={`/admin/exams/${examId}/questions/${questionId}/edit`}>
-              <Button className="bg-[#175FFF] hover:bg-blue-700 text-white font-mono text-[12px] font-bold h-[34px] px-5 rounded-none shadow-none">
-                <Edit2 size={14} className="mr-2" /> Edit
-              </Button>
-            </Link>
+            <Button
+              disabled
+              className="bg-[#175FFF] text-white font-mono text-[12px] font-bold h-[34px] px-5 rounded-none shadow-none opacity-60 cursor-not-allowed"
+              title="Question edit screen is not implemented yet."
+            >
+              <Edit2 size={14} className="mr-2" /> Edit
+            </Button>
             
-            <Button className="bg-[#F04438] hover:bg-red-700 text-white font-mono text-[12px] font-bold h-[34px] px-5 rounded-none shadow-none">
+            <Button
+              onClick={handleDeleteQuestion}
+              disabled={!isSuperAdmin}
+              className="bg-[#F04438] hover:bg-red-700 text-white font-mono text-[12px] font-bold h-[34px] px-5 rounded-none shadow-none disabled:cursor-not-allowed disabled:opacity-60"
+            >
               <Trash2 size={14} className="mr-2" /> Delete
             </Button>
           </div>

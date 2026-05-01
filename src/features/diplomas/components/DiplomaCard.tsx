@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-// 🔥 1. ضفنا useRouter عشان نقدر نعمل Prefetch
+//   1. ضفنا useRouter عشان نقدر نعمل Prefetch
 import { useRouter } from "next/navigation"; 
 
 interface DiplomaCardProps {
@@ -13,9 +13,9 @@ interface DiplomaCardProps {
 }
 
 export function DiplomaCard({ id, image, title, description }: DiplomaCardProps) {
-  const router = useRouter(); // 🔥 2. تعريف الـ router
+  const router = useRouter(); //   2. تعريف الـ router
 
-  // 🔥 الدالة السحرية اللي بتعالج كل مشاكل الباك إند
+  //   الدالة السحرية اللي بتعالج كل مشاكل الباك إند
   const getValidImageUrl = (src: string) => {
     if (!src) return "https://images.unsplash.com/photo-1617042375876-a13e36732a04";
     
@@ -36,7 +36,7 @@ export function DiplomaCard({ id, image, title, description }: DiplomaCardProps)
     <Link 
       href={`/exams/${id}`} 
       className="block w-full group"
-      // 🔥 3. الخدعة السحرية: التحميل المسبق بمجرد لمس الماوس
+      //   3. الخدعة السحرية: التحميل المسبق بمجرد لمس الماوس
       onMouseEnter={() => router.prefetch(`/exams/${id}`)}
     >
       <div className="relative w-full h-[320px] overflow-hidden rounded-none bg-slate-200 border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-blue-200">

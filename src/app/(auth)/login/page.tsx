@@ -5,8 +5,16 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn, getSession } from "next-auth/react"; 
 import { LoginForm, type LoginFormValues } from "@/features/auth/components/LoginForm";
+import type { AppSession } from "@/types/auth";
 
 const skipAuth = process.env.NEXT_PUBLIC_SKIP_AUTH === "true";
+
+function resolvePostLoginPath(role: unknown) {
+  const normalizedRole = String(role ?? "").toUpperCase();
+  return normalizedRole === "ADMIN" || normalizedRole === "SUPER_ADMIN"
+    ? "/admin/diplomas"
+    : "/diplomas";
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,7 +26,7 @@ export default function LoginPage() {
     void signIn("credentials", {
       email: "",
       password: "",
-      callbackUrl: "/diplomas",
+      callbackUrl: "/admin/diplomas",
       redirect: true,
     });
   }, []);
@@ -51,22 +59,10 @@ export default function LoginPage() {
       }
       
       if (result?.ok) {
-        // بنسحب السيشن عشان نعرف الرتبة اللي رجعت
         const session = await getSession();
-        
-        console.log("🔥 MY CURRENT SESSION:", session);
-
-        const userRole = (session?.user as any)?.role;
-
-        // التوجيه الذكي بناءً على الرتبة
-        if (userRole === "ADMIN" || userRole === "admin" || userRole === "SUPER_ADMIN" || userRole === "superAdmin") {
-          router.push("/admin/diplomas");
-        } else {
-          router.push("/diplomas"); 
-        }
-        
-        // ريفريش سريع عشان السايد بار يحس بالسيشن الجديدة ويغير لونه
-        router.refresh();
+        const typedSession = session as AppSession | null;
+        const userRole = typedSession?.user?.role;
+        router.replace(resolvePostLoginPath(userRole));
       }
     } finally {
       setIsAuthenticating(false);

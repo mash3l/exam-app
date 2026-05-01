@@ -3,7 +3,7 @@ import { AuthSessionProvider } from "@/shared/providers/AuthSessionProvider"
 import "./globals.css"
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils/tailwind-cn";
-// 🔥 1. استيراد Toaster من Sonner 🔥
+//   1. استيراد Toaster من Sonner  
 import { Toaster } from "sonner";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });

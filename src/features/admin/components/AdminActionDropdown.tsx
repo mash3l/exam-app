@@ -6,7 +6,7 @@ import { MoreHorizontal, Eye, Edit2, Trash2 } from "lucide-react";
 
 interface AdminActionDropdownProps {
   id: string;
-  basePath?: string; 
+  basePath?: string;
   onEdit?: () => void;
   onDelete?: () => void;
 }
@@ -42,7 +42,7 @@ export function AdminActionDropdown({ id, basePath = "/admin/diplomas", onEdit, 
       </button>
 
       {isOpen && (
-        <div className="absolute right-8 top-0 z-50 w-[120px] bg-white border border-gray-200 shadow-md py-1 animate-in fade-in zoom-in-95 duration-100 rounded-[4px]">
+        <div className="absolute right-0 top-full mt-1 z-50 w-[140px] bg-white border border-gray-200 shadow-md py-1 animate-in fade-in zoom-in-95 duration-100 rounded-[4px]">
           
           {/* زرار الـ View */}
           <button 
@@ -79,12 +79,10 @@ export function AdminActionDropdown({ id, basePath = "/admin/diplomas", onEdit, 
               setIsOpen(false);
               if (onDelete) {
                 onDelete();
-              } else {
-                // هنا ممكن تحط الـ Toast اللي بيظهر رسالة الحذف لو مفيش onDelete مبعوتة
-                console.log("Delete clicked for ID:", id);
               }
-            }} 
-            className="w-full px-4 py-2 flex items-center gap-3 hover:bg-red-50 text-[#F04438] text-[13px] font-bold transition-colors border-t border-gray-50 cursor-pointer"
+            }}
+            disabled={!onDelete}
+            className="w-full px-4 py-2 flex items-center gap-3 hover:bg-red-50 text-[#F04438] text-[13px] font-bold transition-colors border-t border-gray-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Trash2 size={14} strokeWidth={2.5} /> Delete
           </button>

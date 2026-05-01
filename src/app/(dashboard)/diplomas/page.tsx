@@ -21,10 +21,7 @@ function DiplomasSkeleton() {
 async function DiplomasData() {
   try {
     const session = await getServerSession(authOptions);
-    const token =
-      session?.accessToken?.trim() ||
-      process.env.NEXT_PUBLIC_DEV_API_TOKEN?.trim() ||
-      undefined;
+    const token = session?.accessToken?.trim() || undefined;
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",

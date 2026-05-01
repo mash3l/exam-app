@@ -1,50 +1,57 @@
 import AdminExamTable from "@/features/admin/components/AdminExamTable";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/auth";
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { Button } from "@/shared/ui/button";
+import type { AppSession } from "@/types/auth";
+import type { Exam } from "@/types/models";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
 
-// بنستخدم searchParams عشان نلقط الـ ID لو جاي من فلتر أو لينك خارجي
 export default async function AdminExamsPage({
   searchParams,
 }: {
   searchParams: Promise<{ diploma?: string }>;
 }) {
-  // 🔥 في Next.js 15+ لازم تعمل await للـ searchParams
   const { diploma } = await searchParams;
-
   const session = await getServerSession(authOptions);
-  const token = (session as any)?.accessToken;
+  const token = (session as AppSession | null)?.accessToken;
 
-  let exams = [];
+  let exams: Exam[] = [];
 
   try {
-    // لو فيه ID دبلومة هنفلتر، لو مفيش هنجيب كله
-    const url = diploma 
+    const url = diploma
       ? `${BASE_URL}/api/exams?diploma=${diploma}`
       : `${BASE_URL}/api/exams`;
 
     const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
 
     if (res.ok) {
       const responseData = await res.json();
-      // استخراج الداتا حسب الـ Payload بتاع السيرفر
       exams = responseData.payload?.exams || responseData.payload?.data || responseData.payload || [];
     }
-  } catch (error) {
-    console.error("Error fetching exams:", error);
+  } catch {
+    exams = [];
   }
 
   return (
     <div className="w-full">
-      {/* @ts-expect-error: AdminExamTable expects 'exams' prop but its type is not declared in the file */} 
-      <AdminExamTable exams={Array.isArray(exams) ? exams : []} />
- 
+      <AdminExamTable exams={Array.isArray(exams) ? exams : []}>
+        {/* الزرار الأخضر الموحد للامتحانات */}
+        <Link href="/admin/exams/create">
+          <Button
+            variant="adminCta"
+            size="admin-cta"
+            className="font-mono rounded-[4px] shadow-none transition-colors cursor-pointer"
+          >
+            <Plus size={16} strokeWidth={2.5} /> Add New Exam
+          </Button>
+        </Link>
+      </AdminExamTable>
     </div>
   );
 }

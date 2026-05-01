@@ -7,6 +7,7 @@ import Link from "next/link";
 import { X, Save, Plus, Trash2, CheckCheck, FileText, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import type { Exam } from "@/types/models";
+import type { AppSession } from "@/types/auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
 
@@ -26,7 +27,8 @@ export default function CreateQuestionPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const token = (session as any)?.accessToken;
+  const typedSession = session as AppSession | null;
+  const token = typedSession?.accessToken;
   const examId = params.id as string;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -54,8 +56,8 @@ export default function CreateQuestionPage() {
           const actualExams: Exam[] = Array.isArray(responsePayload) ? responsePayload : [];
           setExams(actualExams);
         }
-      } catch (error) {
-        console.error("Error fetching exams:", error);
+      } catch {
+        toast.error("Failed to load exams.");
       } finally {
         setIsLoading(false);
       }
@@ -170,11 +172,9 @@ export default function CreateQuestionPage() {
         router.push(`/admin/exams/${selectedExamId}`);
         router.refresh();
       } else {
-        console.error("Backend Error:", data);
-        toast.error(data.message || "Failed to save questions. Check console.");
+        toast.error((data as { message?: string }).message || "Failed to save questions.");
       }
-    } catch (error) {
-      console.error("Network Error:", error);
+    } catch {
       toast.error("A network error occurred. Please try again.");
     } finally {
       setIsSaving(false);

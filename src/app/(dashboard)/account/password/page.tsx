@@ -51,7 +51,7 @@ export default function PasswordPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        // 🔥 التعديل هنا: خلينا الأسماء زي ما الباك إند طالبها بالمللي 🔥
+        //   التعديل هنا: خلينا الأسماء زي ما الباك إند طالبها بالمللي  
         body: JSON.stringify({
           currentPassword: values.currentPassword,
           newPassword: values.newPassword,

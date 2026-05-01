@@ -10,31 +10,24 @@ export default async function AdminProtectionLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // 1. نجيب السيشن من السيرفر
   const session = await getServerSession(authOptions);
-  
-  // 2. نقرأ الرتبة
-  const userRole = (session?.user as any)?.role;
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
 
-  // 3. الحماية: لو مش أدمن، ارميه بره
+  // تعديل الحماية: لو مش أدمن يروح لصفحة تسجيل الدخول أو صفحة عامة
+  // ولو هو أدمن وداخل على /admin نخليه يروح لجدول الامتحانات فوراً
   if (userRole !== "ADMIN" && userRole !== "SUPER_ADMIN") {
-    redirect("/diplomas");
+    redirect("/login");
   }
 
-  // 4. لو أدمن، ارسمله السايد بار والهيدر والمحتوى
   return (
-    <div className="flex h-screen w-full bg-[#F4F8FF] overflow-hidden" dir="ltr">
-      
-      {/* باصينا السيشن للسايد بار عشان يقرأ الداتا فوراً */}
+    <div className="flex min-h-screen w-full items-start bg-[#ffffff]" dir="ltr">
       <Sidebar session={session} />
 
-      <div className="flex flex-col flex-1 overflow-hidden relative">
+      <div className="relative flex flex-1 flex-col">
         <Header />
-
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 xl:p-8">
           {children}
         </main>
-
         <Toaster richColors position="bottom-right" />
       </div>
     </div>

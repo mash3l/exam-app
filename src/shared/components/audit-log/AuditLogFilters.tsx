@@ -22,20 +22,20 @@ export function AuditLogFilters({
 }: AuditLogFiltersProps) {
   return (
     <div className="bg-white border border-gray-200 shadow-sm w-full rounded-[4px] overflow-hidden">
-      <div className="bg-[#175FFF] px-6 py-3 flex justify-between items-center">
+      <div className="bg-[#175FFF] px-4 sm:px-6 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2 text-white font-mono text-[13px] font-bold tracking-wide">
           <Filter size={16} strokeWidth={2.5} /> Search & Filters
         </div>
         <button 
           onClick={() => setIsFiltersVisible(!isFiltersVisible)}
-          className="flex items-center gap-1.5 text-white/90 hover:text-white font-mono text-[12px] font-bold transition-colors"
+          className="flex items-center gap-1.5 text-white/90 hover:text-white font-mono text-[12px] font-bold transition-colors cursor-pointer"
         >
           <X size={14} strokeWidth={3} /> {isFiltersVisible ? "Hide" : "Show"}
         </button>
       </div>
       
       {isFiltersVisible && (
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
             <div className="relative">
               <select 
@@ -81,16 +81,16 @@ export function AuditLogFilters({
             </div>
           </div>
           
-          <div className="flex justify-end items-center gap-3">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-2 sm:gap-3">
             <button 
               onClick={onClear}
-              className="font-mono text-[13px] font-bold text-slate-600 hover:text-[#175FFF] transition-colors px-4"
+              className="font-mono text-[13px] font-bold text-slate-600 hover:text-[#175FFF] transition-colors px-4 h-10"
             >
               Clear
             </button>
             <button 
               onClick={onApply}
-              className="bg-[#E2E8F0] hover:bg-slate-300 text-slate-700 font-mono text-[13px] font-bold h-10 px-8 rounded-[4px] transition-colors"
+              className="w-full sm:w-auto bg-[#E2E8F0] hover:bg-slate-300 text-slate-700 font-mono text-[13px] font-bold h-10 px-8 rounded-[4px] transition-colors"
             >
               Apply
             </button>

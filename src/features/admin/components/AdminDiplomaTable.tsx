@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -9,6 +10,7 @@ import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { toast } from "sonner";
 import type { Diploma } from "@/types/models";
+import type { AppSession } from "@/types/auth";
 
 import { AdminFilterBox } from "./AdminFilterBox";
 import { AdminSortDropdown } from "./AdminSortDropdown";
@@ -16,18 +18,27 @@ import { AdminActionDropdown } from "./AdminActionDropdown";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
 
-export default function AdminExamTable() {
+type AdminDiplomaTableProps = {
+  diplomas?: Diploma[];
+  children?: ReactNode;
+};
+
+export default function AdminDiplomaTable({ diplomas: initialDiplomas = [], children }: AdminDiplomaTableProps) {
   const { data: session } = useSession();
-  const token = (session as any)?.accessToken;
+  const typedSession = session as AppSession | null;
+  const token = typedSession?.accessToken;
   const router = useRouter();
 
-  const [exams, setExams] = useState<Diploma[]>([]);
+  const [diplomas, setDiplomas] = useState<Diploma[]>(initialDiplomas);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || initialDiplomas.length > 0) {
+      setIsLoading(false);
+      return;
+    }
 
-    async function fetchExams() {
+    async function fetchDiplomas() {
       try {
         const res = await fetch(`${BASE_URL}/api/diplomas`, {
           headers: {
@@ -38,27 +49,26 @@ export default function AdminExamTable() {
         
         if (res.ok) {
           const responsePayload = responseData.payload?.exams || responseData.payload?.data || responseData.payload || [];
-          const actualExamsArray: Diploma[] = Array.isArray(responsePayload) ? responsePayload : [];
-          setExams(actualExamsArray);
+          const actualDiplomasArray: Diploma[] = Array.isArray(responsePayload) ? responsePayload : [];
+          setDiplomas(actualDiplomasArray);
         } else {
           toast.error("Failed to load exams");
         }
-      } catch (error) {
-        console.error("Error fetching exams:", error);
+      } catch {
         toast.error("A network error occurred");
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchExams();
-  }, [token]);
+    fetchDiplomas();
+  }, [token, initialDiplomas]);
 
   return (
     <div className="w-full animate-in fade-in duration-300 pb-10">
       
       {/* 1. الهيدر المدمج (العنوان + الترقيم + زرار الإضافة) - ريسبونسف */}
-      <div className="bg-white w-full border-b border-gray-200 px-4 sm:px-8 py-4 sm:py-6">
+      <div className="bg-white w-full border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="flex flex-col gap-4">
           
           <h1 className="text-[12px] text-slate-400 font-mono tracking-wide m-0 uppercase font-bold">
@@ -90,18 +100,26 @@ export default function AdminExamTable() {
             </div>
 
             {/* الجزء اللي على اليمين: زرار الإضافة */}
-            <Link href="/admin/exams/create" className="w-full lg:w-auto block">
-              <Button className="w-full lg:w-auto bg-[#00BC7D] hover:bg-[#00A56D] text-white rounded-[4px] font-mono text-[14px] font-medium h-10 px-6 shadow-sm transition-colors cursor-pointer flex items-center justify-center">
-                <Plus size={18} className="mr-2" strokeWidth={2.5} /> Create New Exam
-              </Button>
-            </Link>
+            {children ? (
+              <div className="w-full lg:w-auto">{children}</div>
+            ) : (
+              <Link href="/admin/diplomas/create" className="w-full lg:w-auto block">
+                <Button
+                  variant="adminCta"
+                  size="admin-cta"
+                  className="font-mono rounded-[4px] shadow-none transition-colors cursor-pointer"
+                >
+                  <Plus size={16} strokeWidth={2.5} /> Add New Diploma
+                </Button>
+              </Link>
+            )}
 
           </div>
         </div>
       </div>
 
       {/* 2. الفلاتر والجدول */}
-      <div className="p-4 sm:p-8 pt-6 space-y-5">
+      <div className="p-4 sm:p-6 lg:p-8 pt-6 space-y-5">
         <AdminFilterBox>
           <div className="space-y-3 md:space-y-4">
             <div className="relative">
@@ -145,76 +163,102 @@ export default function AdminExamTable() {
           </div>
         </AdminFilterBox>
 
-        <div className="bg-white border border-gray-200 shadow-sm relative z-0 min-h-[300px] rounded-[4px] overflow-hidden">
+        <div className="bg-white border border-gray-200 shadow-sm relative z-0 min-h-[300px] rounded-[4px] overflow-visible md:overflow-hidden">
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10">
               <Loader2 className="animate-spin text-[#175FFF] w-8 h-8" />
             </div>
-          ) : exams.length === 0 ? (
+          ) : diplomas.length === 0 ? (
             <div className="p-12 text-center text-gray-400 font-mono text-[13px]">
-              No exams found. Click "Create New Exam" to get started.
+              No diplomas found. Click &quot;Add New Diploma&quot; to get started.
             </div>
           ) : (
-            <div className="w-full overflow-x-auto scrollbar-hide">
-              {/* غلاف السكرول الأفقي للجدول */}
-              <table className="w-full text-left font-mono min-w-[800px]">
-                <thead className="bg-[#175FFF] text-white uppercase text-[11px] tracking-wider">
-                  <tr>
-                    <th className="px-5 py-4 font-bold w-[80px]">Image</th>
-                    <th className="px-5 py-4 font-bold w-[35%]">Title</th>
-                    <th className="px-5 py-4 font-bold w-[25%]">Diploma</th>
-                    <th className="px-5 py-4 font-bold w-[15%]">No. of Questions</th>
-                    <th className="px-5 py-4 font-bold text-right">
-                      <AdminSortDropdown />
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="text-[12px]">
-                  {exams.map((exam: Diploma) => {
-                    const rowId = exam._id || exam.id;
-                    return (
-                    <tr 
-                      key={rowId} 
-                      onClick={() => {
-                        if (rowId) router.push(`/admin/diplomas/${rowId}`);
-                      }} // تفعيل الضغط على الصف
-                      className="border-b border-gray-100 hover:bg-slate-50 transition-colors group cursor-pointer"
-                    >
-                      <td className="px-5 py-3">
-                        <img 
-                          src={exam.image || exam.imgURL || "https://placehold.co/100"} 
-                          alt={exam.title || "Exam"} 
-                          className="w-[40px] h-[40px] sm:w-[48px] sm:h-[48px] object-cover shadow-sm border border-gray-100 rounded-[4px]" 
-                          onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/100x100/1E293B/FFF?text=Error" }}
-                        />
-                      </td>
-                      <td className="px-5 py-3 font-bold text-slate-800">
-                        <span className="line-clamp-2">{exam.title || exam.name}</span>
-                      </td>
-                      <td className="px-5 py-3 text-slate-500">
-                        <span className="line-clamp-1">
-                          {exam.diploma?.title || exam.diplomaName || "Full Stack Development"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-slate-500">
-                        <span className=" px-2 py-1 rounded-md text-slate-600 font-bold">
-                          {exam.questionsCount || exam.numberOfQuestions || "10"}
-                        </span>
-                      </td>
-                      <td 
-                        className="px-5 py-3 text-right"
-                        onClick={(e) => e.stopPropagation()} // إيقاف تسريب الضغطة للدروب داون
+            <>
+              <div className="md:hidden divide-y divide-gray-100">
+                {diplomas.map((diploma: Diploma) => {
+                  const rowId = diploma._id || diploma.id;
+                  return (
+                    <article key={rowId} className="p-4 space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => rowId && router.push(`/admin/diplomas/${rowId}`)}
+                        className="w-full text-left flex items-start gap-3 cursor-pointer"
                       >
-                        <AdminActionDropdown 
-                          id={rowId || ""} 
-                          basePath="/admin/diplomas" 
+                        <img
+                          src={diploma.image || diploma.imgURL || "https://placehold.co/100"}
+                          alt={diploma.title || "Diploma"}
+                          className="w-12 h-12 object-cover shadow-sm border border-gray-100 rounded-[4px] shrink-0"
+                          onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/100x100/1E293B/FFF?text=Error"; }}
                         />
-                      </td>
+                        <div className="min-w-0">
+                          <p className="font-mono text-[13px] text-slate-800 font-bold line-clamp-2">
+                            {diploma.title || diploma.name}
+                          </p>
+                          <p className="font-mono text-[12px] text-slate-500 line-clamp-2 mt-1">
+                            {diploma.description || "No description"}
+                          </p>
+                        </div>
+                      </button>
+                      <div className="flex items-center justify-end">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <AdminActionDropdown id={rowId || ""} basePath="/admin/diplomas" />
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="hidden md:block w-full overflow-x-auto scrollbar-hide">
+                <table className="w-full text-left font-mono min-w-[860px]">
+                  <thead className="bg-[#175FFF] text-white uppercase text-[11px] tracking-wider">
+                    <tr>
+                      <th className="px-5 py-4 font-bold w-[80px]">Image</th>
+                      <th className="px-5 py-4 font-bold w-[35%]">Title</th>
+                      <th className="px-5 py-4 font-bold w-[45%]">Description</th>
+                      <th className="px-5 py-4 font-bold text-right sticky right-0 bg-[#175FFF] z-10">
+                        <AdminSortDropdown />
+                      </th>
                     </tr>
-                  )})}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="text-[12px]">
+                    {diplomas.map((diploma: Diploma) => {
+                      const rowId = diploma._id || diploma.id;
+                      return (
+                        <tr
+                          key={rowId}
+                          onClick={() => {
+                            if (rowId) router.push(`/admin/diplomas/${rowId}`);
+                          }}
+                          className="border-b border-gray-100 hover:bg-slate-50 transition-colors group cursor-pointer"
+                        >
+                          <td className="px-5 py-3">
+                            <img
+                              src={diploma.image || diploma.imgURL || "https://placehold.co/100"}
+                              alt={diploma.title || "Diploma"}
+                              className="w-[40px] h-[40px] sm:w-[48px] sm:h-[48px] object-cover shadow-sm border border-gray-100 rounded-[4px]"
+                              onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/100x100/1E293B/FFF?text=Error"; }}
+                            />
+                          </td>
+                          <td className="px-5 py-3 font-bold text-slate-800">
+                            <span className="line-clamp-2">{diploma.title || diploma.name}</span>
+                          </td>
+                          <td className="px-5 py-3 text-slate-500">
+                            <span className="line-clamp-2">{diploma.description || "No description"}</span>
+                          </td>
+                          <td
+                            className="px-5 py-3 text-right sticky right-0 bg-white group-hover:bg-slate-50"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <AdminActionDropdown id={rowId || ""} basePath="/admin/diplomas" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

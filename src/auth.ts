@@ -2,8 +2,30 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { resolveNextAuthSecret } from "@/lib/auth-secret";
 import { attemptExternalLogin } from "@/lib/external-auth-login";
+import type { UserRole } from "@/types/auth";
 
 const nextAuthSecret = resolveNextAuthSecret();
+const isProduction = process.env.NODE_ENV === "production";
+
+function extractRoleFromToken(accessToken: string): UserRole {
+  try {
+    const segments = accessToken.split(".");
+    if (segments.length < 2) return "STUDENT";
+    const payload = JSON.parse(Buffer.from(segments[1], "base64url").toString("utf8")) as Record<string, unknown>;
+    const roleCandidate =
+      payload.role ??
+      payload.userRole ??
+      payload["https://schemas.elevate.dev/role"] ??
+      payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+    const normalized = String(roleCandidate ?? "STUDENT").toUpperCase();
+    if (normalized === "ADMIN" || normalized === "SUPER_ADMIN") {
+      return normalized;
+    }
+    return "STUDENT";
+  } catch {
+    return "STUDENT";
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,18 +37,6 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (process.env.NEXT_PUBLIC_SKIP_AUTH === "true") {
-          const token = process.env.NEXT_PUBLIC_DEV_API_TOKEN?.trim();
-          if (token) {
-            return {
-              id: "skip-auth",
-              email: "dev@elevate.local",
-              accessToken: token,
-              role: "ADMIN", 
-            };
-          }
-        }
-
         const email = credentials?.email?.trim();
         const password = credentials?.password;
         if (!email || !password) return null;
@@ -37,51 +47,29 @@ export const authOptions: NextAuthOptions = {
           throw new Error(result.message);
         }
 
-        // 🔥 الإجبار المطلق: أي حد بيعمل لوجن دلوقتي بياخد رتبة ADMIN فوراً
-        // عشان تخلص شغلك وتقفل صفحات لوحة التحكم براحتك
-        // بنخليها طالب كافتراضي const apiData = (result as any).parsed;
-       // 1. بنحاول نقرأ اللي الباك إند باعته
-       let userRole = "STUDENT"; 
-       const apiData = (result as any).parsed;
-   
-
-       if (apiData) {
-         const foundRole = apiData.user?.role || apiData.payload?.user?.role || apiData.role;
-         if (foundRole) {
-           userRole = String(foundRole).toUpperCase();
-         }
-       }
-
-       // 2. 🔥 الخدعة السحرية: الإجبار برقم الإيميل أو اليوزر نيم 🔥
-       // ضيف اليوزر نيم بتاعك هنا، الكود هيديله أدمن غصب عن الباك إند
-       if (email === "mash3l" || email === "mo7amedmash3l@gmail.com") {
-         userRole = "ADMIN";
-       }
+        const userRole = extractRoleFromToken(result.token);
 
         return {
           id: email,
           email,
           accessToken: result.token,
-          role: userRole, 
+          role: userRole,
         };
       },
     }),
   ],
   callbacks: {
-    // شيلنا دالة signIn من هنا عشان الإيرور
     async jwt({ token, user }) {
       if (user) {
-        token.accessToken = (user as any).accessToken;
-        token.role = (user as any).role; // الرتبة هتيجي ADMIN زي ما ثبتناها
+        token.accessToken = user.accessToken;
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        (session as any).accessToken = token.accessToken as string;
-        if (session.user) {
-          (session.user as any).role = token.role;
-        }
+      session.accessToken = token.accessToken;
+      if (session.user) {
+        session.user.role = token.role;
       }
       return session;
     },
@@ -92,6 +80,19 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+  },
+  cookies: {
+    sessionToken: {
+      name: isProduction
+        ? "__Secure-next-auth.session-token"
+        : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isProduction,
+      },
+    },
   },
   secret: nextAuthSecret,
 };

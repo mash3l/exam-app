@@ -73,7 +73,6 @@ export default function ProfilePage() {
         });
 
         const data = await res.json();
-        // console.log("Full API Response:", data); // بص على الـ console بعد التعديل ده
 
         if (res.ok && data.payload?.user) { 
           // سحبنا اليوزر من جوه الـ payload

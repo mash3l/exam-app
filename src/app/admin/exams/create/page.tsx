@@ -1,156 +1,74 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { X, Save, ExternalLink, Plus, Download, Trash2, CloudUpload, Loader2 } from "lucide-react";
+import { X, Save, CloudUpload, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { toast } from "sonner";
-import { AdminActionDropdown } from "@/features/admin/components/AdminActionDropdown";
-import type { Diploma, Question, Exam } from "@/types/models";
+import type { Diploma } from "@/types/models";
 import type { AppSession } from "@/types/auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
 
-// ─── 1. كومبوننت الأسئلة (فصلناه هنا عشان الملف ميكونش زحمة) ───
-function ExamQuestionsSection({ examId, questions }: { examId: string; questions: Question[] }) {
-  return (
-    <div className="bg-white border border-gray-200 shadow-sm w-full">
-      <div className="bg-[#175FFF] px-4 sm:px-6 py-2.5 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center border-b border-[#175FFF]">
-        <h2 className="text-white font-mono text-[13px] font-bold tracking-wide">
-          Exam Questions
-        </h2>
-        <Link href={`/admin/exams/${examId}/questions/create`}>
-          <Button className="bg-transparent hover:bg-white/10 text-white font-mono text-[12px] font-bold h-[28px] px-3 rounded-none shadow-none transition-colors border border-transparent hover:border-white/20 cursor-pointer">
-            <Plus size={14} className="mr-2" strokeWidth={2.5} /> Add Questions
-          </Button>
-        </Link>
-      </div>
-
-      <div className="bg-[#F1F5F9] px-4 sm:px-6 py-2.5 border-b border-gray-200 text-[11px] font-mono text-slate-500 font-bold uppercase tracking-wider">
-        <span>Title</span>
-      </div>
-
-      <div className="divide-y divide-gray-100">
-        {questions.length === 0 ? (
-          <div className="px-4 sm:px-6 py-6 text-center font-mono text-[12px] text-slate-500">
-            No questions found for this exam.
-          </div>
-        ) : (
-          // لو في أسئلة حقيقية جاية من الداتا بيز
-          questions.map((q: Question, idx) => {
-            // حل مشكلة الـ Key هنا كمان احتياطي
-            const uniqueKey = q._id || q.id || `q-${idx}`;
-            return (
-              <div key={uniqueKey} className="flex justify-between items-center px-4 sm:px-6 py-3 hover:bg-white transition-colors">
-                <div className="font-mono text-[12px] text-slate-700 font-medium line-clamp-1 pr-4">
-                  {q.title || q.questionText || "Question text"}
-                </div>
-                <div className="shrink-0">
-                  <AdminActionDropdown
-                    id={q._id || q.id || ""}
-                    basePath={`/admin/exams/${examId}/questions`}
-                  />
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── 2. الصفحة الرئيسية (الفورمة الأساسية) ───
-export default function EditExamPage() {
-  const params = useParams();
+export default function CreateExamPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const typedSession = session as AppSession | null;
   const token = typedSession?.accessToken;
-  const examId = params.id as string;
 
   // States
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [diplomas, setDiplomas] = useState<Diploma[]>([]);
-  const [questions, setQuestions] = useState<Question[]>([]);
 
   // Form States
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [duration, setDuration] = useState("");
+  const [duration, setDuration] = useState("30"); // قيمة افتراضية
   const [selectedDiploma, setSelectedDiploma] = useState("");
-  const [examNameOriginal, setExamNameOriginal] = useState("");
   
   // Image States
-  const [existingImage, setExistingImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // جلب الدبلومات عشان تظهر في الـ Dropdown
   useEffect(() => {
-    if (!token || !examId) return;
+    if (!token) return;
 
-    async function fetchData() {
+    async function fetchDiplomas() {
       try {
-        const [examRes, diplomasRes, questionsRes] = await Promise.all([
-          fetch(`${BASE_URL}/api/exams/${examId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${BASE_URL}/api/diplomas`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${BASE_URL}/api/questions/exam/${examId}`, { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-
-        if (diplomasRes.ok) {
-          const dipData = await diplomasRes.json();
+        const res = await fetch(`${BASE_URL}/api/diplomas`, { 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
+        if (res.ok) {
+          const dipData = await res.json();
           const responsePayload = dipData.payload?.data || dipData.payload || [];
           setDiplomas(Array.isArray(responsePayload) ? responsePayload : []);
         }
-
-        if (questionsRes.ok) {
-          const qData = await questionsRes.json();
-          const responsePayload = qData.payload?.questions || qData.payload || [];
-          setQuestions(Array.isArray(responsePayload) ? responsePayload : []);
-        }
-
-        if (examRes.ok) {
-          const examData = await examRes.json();
-          const exam: Exam = examData.payload?.exam || examData.payload || examData;
-          
-          setTitle(exam.title || exam.name || "");
-          setExamNameOriginal(exam.title || exam.name || "Exam");
-          setDescription(exam.description || exam.desc || "");
-          setDuration(exam.duration?.toString() || "20");
-          setSelectedDiploma((exam.diploma?._id || exam.diplomaId || exam.diploma || "") as string);
-          setExistingImage(exam.image || exam.imgURL || null);
-        } else {
-          toast.error("Failed to load exam details");
-        }
-
       } catch {
-        toast.error("Network error");
+        toast.error("Failed to load diplomas");
       } finally {
         setIsLoading(false);
       }
     }
-
-    fetchData();
-  }, [examId, token]);
+    fetchDiplomas();
+  }, [token]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
-      setExistingImage(null);
     }
   };
 
   const removeImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    setExistingImage(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -162,8 +80,9 @@ export default function EditExamPage() {
 
     setIsSaving(true);
     try {
-      let finalImageUrl = existingImage;
+      let finalImageUrl = "";
 
+      // رفع الصورة لو موجودة
       if (imageFile) {
         const formData = new FormData();
         formData.append("image", imageFile); 
@@ -178,14 +97,15 @@ export default function EditExamPage() {
           const uploadData = await uploadRes.json();
           finalImageUrl = uploadData.url || uploadData.payload?.url || uploadData.payload || "";
         } else {
-          toast.error("Failed to upload new image");
+          toast.error("Failed to upload image");
           setIsSaving(false);
           return;
         }
       }
 
-      const updateRes = await fetch(`${BASE_URL}/api/exams/${examId}`, {
-        method: "PUT", 
+      // إضافة الامتحان الجديد (POST Request)
+      const createRes = await fetch(`${BASE_URL}/api/exams`, {
+        method: "POST", 
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -199,13 +119,14 @@ export default function EditExamPage() {
         }),
       });
 
-      if (updateRes.ok) {
-        toast.success("Exam updated successfully!");
-        router.push(`/admin/exams/${examId}`);
+      if (createRes.ok) {
+        toast.success("Exam created successfully!");
+        // بعد الحفظ، بنوجه الأدمن لصفحة الامتحانات
+        router.push("/admin/exams");
         router.refresh();
       } else {
-        const errorData = await updateRes.json();
-        toast.error(errorData.message || "Failed to update exam");
+        const errorData = await createRes.json();
+        toast.error(errorData.message || "Failed to create exam");
       }
     } catch {
       toast.error("Network error occurred");
@@ -225,36 +146,24 @@ export default function EditExamPage() {
   return (
     <div className="w-full animate-in fade-in duration-300 pb-10">
       
-      {/* ─── Header ─── */}
-      <div className="bg-white w-full border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 top-0 z-20 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
+      {/* ─── الهيدر والزراير اللي في الصورة ─── */}
+      <div className="bg-white w-full border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
         <div className="min-w-0">
           <div className="text-[11px] sm:text-[12px] font-mono tracking-wide mb-3 text-gray-400 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
             <Link href="/admin/exams" className="hover:text-gray-600 transition-colors">Exams</Link>
             <span>/</span>
-            <Link href={`/admin/exams/${examId}`} className="hover:text-gray-600 transition-colors truncate max-w-[160px]">{examNameOriginal}</Link>
-            <span>/</span>
-            <span className="text-[#175FFF] font-bold">Edit</span>
+            <span className="text-[#175FFF] font-bold">Create New Exam</span>
           </div>
           
           <h1 className="text-[16px] text-slate-900 font-bold font-sans mb-1">
-            {examNameOriginal}
+            Create New Exam
           </h1>
-          <div className="text-[12px] font-mono text-slate-400 flex items-center gap-1 min-w-0">
-            Diploma: 
-            <Link
-              href={selectedDiploma ? `/admin/diplomas/${selectedDiploma}` : "/admin/diplomas"}
-              className="text-slate-400 underline hover:text-[#175FFF] flex items-center gap-1 transition-colors truncate max-w-[220px]"
-            >
-              {diplomas.find(d => (d._id || d.id) === selectedDiploma)?.title || "Unknown Diploma"}
-              <ExternalLink size={12} />
-            </Link>
-          </div>
         </div>
 
         <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2 sm:gap-3">
           <Button 
             variant="outline" 
-            onClick={() => router.push(`/admin/exams/${examId}`)}
+            onClick={() => router.push("/admin/exams")}
             className="w-full sm:w-auto bg-[#F1F5F9] border-transparent text-slate-600 hover:bg-[#E2E8F0] font-mono text-[13px] font-bold h-[36px] px-6 rounded-none shadow-none transition-colors cursor-pointer"
           >
             <X size={16} className="mr-2" strokeWidth={2.5} /> Cancel
@@ -272,7 +181,7 @@ export default function EditExamPage() {
       </div>
 
       <div className="p-4 sm:p-6 lg:p-8">
-        {/* ─── Form Data ─── */}
+        {/* ─── بيانات الامتحان ─── */}
         <div className="bg-white border border-gray-200 shadow-sm w-full mb-8">
           <div className="bg-[#175FFF] px-6 py-2.5 border-b border-[#175FFF]">
             <h2 className="text-white font-mono text-[13px] font-bold tracking-wide">
@@ -285,6 +194,7 @@ export default function EditExamPage() {
             <div>
               <label className="block text-[12px] font-mono font-bold text-slate-700 mb-2">Title</label>
               <Input 
+                placeholder="Enter exam title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="rounded-none border-gray-200 font-mono text-[13px] h-10 px-4 focus-visible:ring-1 focus-visible:ring-blue-500 w-full" 
@@ -301,7 +211,6 @@ export default function EditExamPage() {
                 >
                   <option value="" disabled>Select Diploma</option>
                   {diplomas.map((dip: Diploma, idx) => {
-                    // 🔥 حل مشكلة الـ Key اللي كانت بتطلعلك في الكونسول 🔥
                     const dipId = dip._id || dip.id || `dip-${idx}`;
                     return (
                       <option key={dipId} value={dipId}>{dip.title}</option>
@@ -319,29 +228,15 @@ export default function EditExamPage() {
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageChange} />
               
               <div className="border border-gray-200 p-2 flex items-center justify-between bg-gray-50/50 min-h-[64px]">
-                {(existingImage || imagePreview) ? (
+                {imagePreview ? (
                   <>
                     <div className="flex items-center gap-3">
-                      <img 
-                        src={imagePreview || existingImage || ""} 
-                        alt="Preview" 
-                        className="w-12 h-12 object-cover border border-gray-200" 
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-[12px] font-mono text-slate-600 line-clamp-1 max-w-[200px]">
-                          {imageFile ? imageFile.name : "existing_image.png"}
-                        </span>
-                      </div>
+                      <img src={imagePreview} alt="Preview" className="w-12 h-12 object-cover border border-gray-200" />
+                      <span className="text-[12px] font-mono text-slate-600 line-clamp-1 max-w-[200px]">
+                        {imageFile ? imageFile.name : ""}
+                      </span>
                     </div>
                     <div className="flex items-center gap-3 pr-2">
-                      <span className="text-[10px] font-mono text-gray-400">
-                        {imageFile ? `${(imageFile.size / (1024 * 1024)).toFixed(2)} MB` : ""}
-                      </span>
-                      {existingImage && (
-                         <a href={existingImage} target="_blank" rel="noreferrer" className="text-[#175FFF] hover:text-blue-700 transition-colors">
-                           <Download size={14} />
-                         </a>
-                      )}
                       <button onClick={removeImage} type="button" className="text-red-400 hover:text-red-600 transition-colors cursor-pointer">
                         <Trash2 size={14} />
                       </button>
@@ -353,7 +248,7 @@ export default function EditExamPage() {
                     className="w-full flex items-center justify-center gap-2 cursor-pointer text-gray-400 hover:text-[#175FFF] transition-colors py-2"
                   >
                     <CloudUpload size={18} />
-                    <span className="text-[12px] font-mono">Upload new image</span>
+                    <span className="text-[12px] font-mono">Upload image</span>
                   </div>
                 )}
               </div>
@@ -362,6 +257,7 @@ export default function EditExamPage() {
             <div>
               <label className="block text-[12px] font-mono font-bold text-slate-700 mb-2">Description</label>
               <textarea 
+                placeholder="Enter exam description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full border border-gray-200 p-3 text-[13px] font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 h-[64px] resize-none text-slate-700"
@@ -380,10 +276,9 @@ export default function EditExamPage() {
 
           </div>
         </div>
-
-        {/* ─── استدعاء كومبوننت الأسئلة الجديد ─── */}
-        <ExamQuestionsSection examId={examId} questions={questions} />
-
+        
+        {/* ملحوظة: قسم الأسئلة متشال من هنا لأن الأسئلة بتتضاف بعد ما الامتحان يتكريت ويكون ليه ID */}
+        
       </div>
     </div>
   );

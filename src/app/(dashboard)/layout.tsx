@@ -9,24 +9,30 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // جلب بيانات الجلسة من السيرفر مباشرة لسرعة الرندر
   const session = await getServerSession(authOptions);
 
   return (
-    <div className="flex h-screen w-full bg-[#F4F8FF] overflow-hidden" dir="ltr">
+    /* 
+      1. الـ Root واخد h-screen و overflow-hidden عشان يثبت الشاشة كلها 
+      وده هيخلي السايد بار يتسمر في مكانه من غير ما يتهز 
+    */
+    <div className="flex h-screen w-full overflow-hidden bg-[#ffffff]" dir="ltr">
       
-      {/* تمرير السيشن مباشرة للسايد بار لمنع الرمشة نهائياً */}
+      {/* السايد بار */}
       <Sidebar session={session} />
-
-      <div className="flex flex-col flex-1 overflow-hidden relative">
+      
+      {/* 2. العمود اللي على اليمين (الهيدر + المحتوى) */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden relative">
         <Header />
-
+        
+        {/* 3. المحتوى نفسه هو الوحيد اللي بيعمل سكرول (overflow-y-auto) */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           {children}
         </main>
-
+        
         <Toaster richColors position="bottom-right" />
       </div>
+
     </div>
   );
 }

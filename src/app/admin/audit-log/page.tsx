@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
 import { AuditLog, Metadata } from "@/types/audit";
+import type { AppSession } from "@/types/auth";
 import { ClearLogsModal } from "@/shared/components/audit-log/ClearLogsModal";
 import { AuditLogFilters } from "@/shared/components/audit-log/AuditLogFilters";
 import { AuditLogTable } from "@/shared/components/audit-log/AuditLogTable";
@@ -14,7 +15,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bo
 
 export default function AuditLogPage() {
   const { data: session } = useSession();
-  const token = (session as any)?.accessToken;
+  const typedSession = session as AppSession | null;
+  const token = typedSession?.accessToken;
+  const userRole = typedSession?.user?.role;
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
 
   // ─── STATES ───
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -45,7 +49,10 @@ export default function AuditLogPage() {
       const res = await fetch(`${BASE_URL}/api/admin/audit-logs?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const data = await res.json();
+      const data = (await res.json()) as {
+        message?: string;
+        payload?: { data?: AuditLog[]; metadata?: Metadata };
+      };
 
       if (res.ok) {
         setLogs(data.payload?.data || []);
@@ -67,6 +74,10 @@ export default function AuditLogPage() {
   const handleClearFilters = () => { setCategory(""); setActionFilter(""); setSearchQuery(""); setPage(1); };
 
   const handleDeleteLog = async (id: string) => {
+    if (!isSuperAdmin) {
+      toast.error("Only Super Admin can delete logs.");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this log entry?")) return;
     setActiveDropdown(null);
     try {
@@ -80,6 +91,10 @@ export default function AuditLogPage() {
   };
 
   const executeClearAllLogs = async () => {
+    if (!isSuperAdmin) {
+      toast.error("Only Super Admin can clear all logs.");
+      return;
+    }
     setIsClearing(true);
     try {
       const res = await fetch(`${BASE_URL}/api/admin/audit-logs`, {
@@ -104,12 +119,12 @@ export default function AuditLogPage() {
         isClearing={isClearing} 
       />
 
-      <div className="bg-white w-full border-b border-gray-200 px-8 py-5 sticky top-0 z-20">
+      <div className="bg-white w-full border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 sticky top-0 z-20">
         <div className="text-[11px] font-mono tracking-widest mb-4 text-gray-400 uppercase">
           <span className="text-[#175FFF] font-bold">Audit Log</span>
         </div>
-        <div className="flex justify-between items-center w-full">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
             <span className="font-mono text-[13px] font-bold text-slate-700">
               {metadata.total === 0 ? "0" : (metadata.page - 1) * metadata.limit + 1} - {Math.min(metadata.page * metadata.limit, metadata.total)} of {metadata.total}
             </span>
@@ -125,13 +140,17 @@ export default function AuditLogPage() {
               </button>
             </div>
           </div>
-          <button onClick={() => setIsClearModalOpen(true)} className="flex items-center justify-center bg-[#F04438] hover:bg-red-600 text-white font-mono text-[13px] font-bold h-9 px-6 rounded-[4px] transition-colors">
+          <button
+            onClick={() => setIsClearModalOpen(true)}
+            disabled={!isSuperAdmin}
+            className="w-full sm:w-auto flex items-center justify-center bg-[#F04438] hover:bg-red-600 text-white font-mono text-[13px] font-bold h-9 px-6 rounded-[4px] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
             <Trash2 size={16} className="mr-2.5" strokeWidth={2} /> Clear All Logs
           </button>
         </div>
       </div>
 
-      <div className="p-8 space-y-6 max-w-[1400px] mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto">
         <AuditLogFilters 
           isFiltersVisible={isFiltersVisible} setIsFiltersVisible={setIsFiltersVisible}
           category={category} setCategory={setCategory}
@@ -145,7 +164,8 @@ export default function AuditLogPage() {
           isLoading={isLoading} 
           activeDropdown={activeDropdown} 
           setActiveDropdown={setActiveDropdown} 
-          onDelete={handleDeleteLog} 
+          onDelete={handleDeleteLog}
+          canDelete={isSuperAdmin}
         />
       </div>
     </div>

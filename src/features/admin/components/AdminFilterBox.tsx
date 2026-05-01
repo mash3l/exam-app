@@ -19,7 +19,7 @@ export function AdminFilterBox({ children }: AdminFilterBoxProps) {
         <div className="flex items-center gap-2 font-mono text-[13px] font-bold">
           <Filter size={16} /> Search & Filters
         </div>
-        <button className="flex items-center gap-1 font-mono text-[12px] opacity-90 hover:opacity-100">
+        <button className="flex items-center gap-1 font-mono text-[12px] opacity-90 hover:opacity-100 cursor-pointer">
           <X size={14} /> {isOpen ? "Hide" : "Show"}
         </button>
       </div>

@@ -31,7 +31,7 @@ export function EmailStep({ nextStep, setEmail }: EmailStepProps) {
     defaultValues: { email: "" },
   });
 
-  // 🔥 الدالة الجديدة اللي بتكلم الـ API
+  //   الدالة الجديدة اللي بتكلم الـ API
   async function onSubmit(values: EmailStepValues) {
     try {
       // بنبعت الإيميل للباك إند
@@ -52,7 +52,6 @@ export function EmailStep({ nextStep, setEmail }: EmailStepProps) {
       }
 
       // لو اللينك اتبعت بنجاح
-      console.log("Reset link sent successfully to:", values.email);
       if (setEmail) setEmail(values.email); // بنحفظ الإيميل لو محتاجينه
       nextStep(); // بننقل اليوزر لصفحة النجاح
 

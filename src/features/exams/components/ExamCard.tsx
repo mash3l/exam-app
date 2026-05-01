@@ -3,6 +3,7 @@
 import { Clock, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation"; // عشان نقرأ الدبلومة الحالية
+import { useState } from "react";
 
 interface ExamCardProps {
   title: string;
@@ -17,6 +18,11 @@ interface ExamCardProps {
 export function ExamCard({ title, description, questions, duration, image, showStart, examSlug }: ExamCardProps) {
   const params = useParams();
   const diplomaId = params?.diplomaId as string;
+  const [isExpanded, setIsExpanded] = useState(false);
+  const shouldCollapse = description.length > 150;
+  const descriptionText = shouldCollapse && !isExpanded
+    ? `${description.slice(0, 150)}...`
+    : description;
 
   return (
     <div className="bg-white border border-gray-100 p-5 flex gap-6 items-start shadow-sm relative rounded-none mb-4 hover:shadow-md transition-shadow">
@@ -38,7 +44,16 @@ export function ExamCard({ title, description, questions, duration, image, showS
         </div>
         
         <p className="text-[12px] font-mono text-slate-400 leading-relaxed pr-16 mt-2">
-          {description} <span className="text-slate-900 font-bold cursor-pointer hover:underline">See More</span>
+          {descriptionText}{" "}
+          {shouldCollapse ? (
+            <button
+              type="button"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              className="text-slate-900 font-bold cursor-pointer hover:underline"
+            >
+              {isExpanded ? "See Less" : "See More"}
+            </button>
+          ) : null}
         </p>
       </div>
 

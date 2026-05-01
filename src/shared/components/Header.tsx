@@ -4,15 +4,21 @@ import { usePathname } from "next/navigation";
 
 export function Header() {
   const pathname = usePathname();
-  
-  // تحديد اسم الصفحة بناءً على المسار
-  const pageName = pathname.includes("account") ? "Account Settings" : "Diplomas";
+
+  // دالة لتحديد العنوان بناءً على المسار الحالي
+  const getPageTitle = () => {
+    if (pathname.includes("/diplomas")) return "Diplomas";
+    if (pathname.includes("/exams")) return "Exams";
+    if (pathname.includes("/audit-log")) return "Audit Log";
+    if (pathname.includes("/account")) return "Account Settings";
+    return "Dashboard";
+  };
 
   return (
-    // شيلنا البوردر والظل والأيقونة اللي على اليمين عشان تطابق الصورة
-    <header className="h-14 bg-white flex items-end px-10 pb-2 shrink-0">
-      <span className="text-[13px] font-medium text-gray-400 tracking-wide">
-        {pageName}
+    <header className="w-full bg-white border-b border-gray-100 px-8 py-5 flex items-center sticky top-0 z-20 min-h-[64px]">
+      {/* نص العنوان بنفس استايل الـ Figma: رمادي فاتح، خط مونو، وحروف كبيرة */}
+      <span className="text-[12px] font-bold text-slate-400 font-mono tracking-widest uppercase">
+        {getPageTitle()}
       </span>
     </header>
   );
