@@ -18,7 +18,7 @@ export default function DashboardLayout({
   const closeSidebar = () => setIsMobileSidebarOpen(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#F4F8FF]" dir="ltr">
+    <div className="flex min-h-screen w-full bg-[#ffffff]" dir="ltr">
       
       {/* 1. الطبقة المظلمة الخلفية عند فتح المنيو في الموبايل */}
       {isMobileSidebarOpen && (

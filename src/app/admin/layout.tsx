@@ -13,12 +13,12 @@ export default function AdminLayout({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#ffffff]" dir="ltr">
-      
+    <div className="flex min-h-screen w-full bg-[#F9FAFB]" dir="ltr">
+
       {/* الـ Sidebar هنا لازم ياخد الـ props اللي هو مستنيها عشان الـ Build ينجح */}
-      <Sidebar 
-        isMobileOpen={isMobileSidebarOpen} 
-        onClose={() => setIsMobileSidebarOpen(false)} 
+      <Sidebar
+        isMobileOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
       />
 
       <div className="relative flex flex-1 flex-col">
