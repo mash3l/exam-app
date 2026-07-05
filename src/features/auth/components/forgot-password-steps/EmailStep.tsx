@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { API_BASE_URL } from "@/lib/api-base";
 import { forgotPasswordBodySchema } from "@/features/auth/schemas/auth.schema";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -16,6 +17,7 @@ import {
   FormMessage,
 } from "@/shared/ui/form";
 import { Loader2 } from "lucide-react"; // ضفنا أيقونة التحميل
+
 
 type EmailStepValues = z.infer<typeof forgotPasswordBodySchema>;
 
@@ -35,7 +37,7 @@ export function EmailStep({ nextStep, setEmail }: EmailStepProps) {
   async function onSubmit(values: EmailStepValues) {
     try {
       // بنبعت الإيميل للباك إند
-      const res = await fetch("https://exam-app.elevate-bootcamp.cloud/api/auth/forgot-password", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: values.email }),

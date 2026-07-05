@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Loader2 } from "lucide-react"; // ضفنا أيقونة التحميل
-import { useSession } from "next-auth/react"; // استيراد السيشن عشان نجيب التوكن
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import { changePasswordBodySchema } from "@/features/account/schemas/account.schema";
+import { clientApiUrl } from "@/lib/client-api";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import {
@@ -22,8 +23,7 @@ import { toast } from "sonner";
 type PasswordFormValues = z.infer<typeof changePasswordBodySchema>;
 
 export default function PasswordPage() {
-  const { data: session } = useSession();
-  const token = session?.accessToken;
+  const { status } = useSession();
 
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -39,19 +39,17 @@ export default function PasswordPage() {
   });
 
   async function onSubmit(values: PasswordFormValues) {
-    if (!token) {
+    if (status !== "authenticated") {
       toast.error("You must be logged in to change your password.");
       return;
     }
 
     try {
-      const res = await fetch("https://exam-app.elevate-bootcamp.cloud/api/users/change-password", {
-        method: "POST", 
+      const res = await fetch(clientApiUrl("/api/users/change-password"), {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
         },
-        //   التعديل هنا: خلينا الأسماء زي ما الباك إند طالبها بالمللي  
         body: JSON.stringify({
           currentPassword: values.currentPassword,
           newPassword: values.newPassword,
@@ -62,31 +60,27 @@ export default function PasswordPage() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        toast.error(data?.message || data?.error || "Failed to update password. Check your current password.", {
-          richColors: true,
-        });
+        toast.error(
+          data?.message ||
+            data?.error ||
+            "Failed to update password. Check your current password.",
+          { richColors: true }
+        );
         return;
       }
 
-      // الرسالة الخضراء بتاعة Sonner
       toast.success("Your password has been updated successfully!", {
         richColors: true,
       });
 
-      // تفريغ الخانات بعد النجاح
-      form.reset({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-
-    } catch (error) {
+      await signOut({ callbackUrl: "/login?passwordChanged=1" });
+    } catch {
       toast.error("A network error occurred. Please try again.", {
         richColors: true,
       });
     }
   }
-  
+
   return (
     <div className="max-w-[600px] space-y-8 animate-in fade-in duration-300">
       <Form {...form}>
@@ -96,7 +90,9 @@ export default function PasswordPage() {
             name="currentPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[13px] font-bold font-mono text-slate-800">Current Password</FormLabel>
+                <FormLabel className="text-[13px] font-bold font-mono text-slate-800">
+                  Current Password
+                </FormLabel>
                 <div className="relative">
                   <FormControl>
                     <Input
@@ -111,7 +107,11 @@ export default function PasswordPage() {
                     onClick={() => setShowCurrent((v) => !v)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-300 hover:text-gray-500"
                   >
-                    {showCurrent ? <Eye size={18} strokeWidth={2} /> : <EyeOff size={18} strokeWidth={2} />}
+                    {showCurrent ? (
+                      <Eye size={18} strokeWidth={2} />
+                    ) : (
+                      <EyeOff size={18} strokeWidth={2} />
+                    )}
                   </button>
                 </div>
                 <FormMessage />
@@ -124,7 +124,9 @@ export default function PasswordPage() {
             name="newPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[13px] font-bold font-mono text-slate-800">New Password</FormLabel>
+                <FormLabel className="text-[13px] font-bold font-mono text-slate-800">
+                  New Password
+                </FormLabel>
                 <div className="relative">
                   <FormControl>
                     <Input
@@ -139,7 +141,11 @@ export default function PasswordPage() {
                     onClick={() => setShowNew((v) => !v)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-300 hover:text-gray-500"
                   >
-                    {showNew ? <Eye size={18} strokeWidth={2} /> : <EyeOff size={18} strokeWidth={2} />}
+                    {showNew ? (
+                      <Eye size={18} strokeWidth={2} />
+                    ) : (
+                      <EyeOff size={18} strokeWidth={2} />
+                    )}
                   </button>
                 </div>
                 <FormMessage />
@@ -152,7 +158,9 @@ export default function PasswordPage() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-[13px] font-bold font-mono text-slate-800">Confirm New Password</FormLabel>
+                <FormLabel className="text-[13px] font-bold font-mono text-slate-800">
+                  Confirm New Password
+                </FormLabel>
                 <div className="relative">
                   <FormControl>
                     <Input
@@ -167,7 +175,11 @@ export default function PasswordPage() {
                     onClick={() => setShowConfirm((v) => !v)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-300 hover:text-gray-500"
                   >
-                    {showConfirm ? <Eye size={18} strokeWidth={2} /> : <EyeOff size={18} strokeWidth={2} />}
+                    {showConfirm ? (
+                      <Eye size={18} strokeWidth={2} />
+                    ) : (
+                      <EyeOff size={18} strokeWidth={2} />
+                    )}
                   </button>
                 </div>
                 <FormMessage />
@@ -182,7 +194,9 @@ export default function PasswordPage() {
               className="h-14 w-full flex justify-center items-center gap-2 rounded-none bg-[#175FFF] font-mono text-[14px] font-bold text-white shadow-sm hover:bg-blue-700"
             >
               {form.formState.isSubmitting ? (
-                <><Loader2 className="animate-spin w-5 h-5" /> Updating...</>
+                <>
+                  <Loader2 className="animate-spin w-5 h-5" /> Updating...
+                </>
               ) : (
                 "Update Password"
               )}

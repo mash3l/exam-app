@@ -9,5 +9,4 @@ export type AppSessionUser = {
 
 export type AppSession = {
   user?: AppSessionUser;
-  accessToken?: string;
 };

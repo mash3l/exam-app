@@ -12,7 +12,7 @@ import { AdminActionDropdown } from "@/features/admin/components/AdminActionDrop
 import type { Diploma, Question, Exam } from "@/types/models";
 import type { AppSession } from "@/types/auth";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 // ─── 1. كومبوننت الأسئلة (فصلناه هنا عشان الملف ميكونش زحمة) ───
 function ExamQuestionsSection({ examId, questions }: { examId: string; questions: Question[] }) {
@@ -67,9 +67,9 @@ function ExamQuestionsSection({ examId, questions }: { examId: string; questions
 export default function EditExamPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const typedSession = session as AppSession | null;
-  const token = typedSession?.accessToken;
+  
   const examId = params.id as string;
 
   // States
@@ -92,14 +92,14 @@ export default function EditExamPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!token || !examId) return;
+    if (status !== "authenticated" || !examId) return;
 
     async function fetchData() {
       try {
         const [examRes, diplomasRes, questionsRes] = await Promise.all([
-          fetch(`${BASE_URL}/api/exams/${examId}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${BASE_URL}/api/diplomas`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${BASE_URL}/api/questions/exam/${examId}`, { headers: { Authorization: `Bearer ${token}` } })
+          fetch(clientApiUrl(`/api/exams/${examId}`)),
+          fetch(clientApiUrl("/api/diplomas")),
+          fetch(clientApiUrl(`/api/questions/exam/${examId}`))
         ]);
 
         if (diplomasRes.ok) {
@@ -136,7 +136,7 @@ export default function EditExamPage() {
     }
 
     fetchData();
-  }, [examId, token]);
+  }, [examId, status]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -168,9 +168,8 @@ export default function EditExamPage() {
         const formData = new FormData();
         formData.append("image", imageFile); 
         
-        const uploadRes = await fetch(`${BASE_URL}/api/upload`, {
+        const uploadRes = await fetch(clientApiUrl("/api/upload"), {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
 
@@ -184,11 +183,10 @@ export default function EditExamPage() {
         }
       }
 
-      const updateRes = await fetch(`${BASE_URL}/api/exams/${examId}`, {
+      const updateRes = await fetch(clientApiUrl(`/api/exams/${examId}`), {
         method: "PUT", 
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           title,

@@ -10,14 +10,14 @@ import { toast } from "sonner";
 import type { Exam, Question, QuestionOption } from "@/types/models";
 import type { AppSession } from "@/types/auth";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 export default function ViewQuestionPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const typedSession = session as AppSession | null;
-  const token = typedSession?.accessToken;
+  
   const isSuperAdmin = typedSession?.user?.role === "SUPER_ADMIN";
   
   const examId = params.id as string;
@@ -28,17 +28,17 @@ export default function ViewQuestionPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!token || !examId || !questionId) return;
+    if (status !== "authenticated" || !examId || !questionId) return;
 
     async function fetchExamAndQuestion() {
       try {
-        const examRes = await fetch(`${BASE_URL}/api/exams/${examId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const examRes = await fetch(clientApiUrl(`/api/exams/${examId}`));
         if (examRes.ok) {
           const examData = await examRes.json();
           setExam(examData.payload?.exam || examData.payload || examData);
         }
 
-        const questionRes = await fetch(`${BASE_URL}/api/questions/${questionId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const questionRes = await fetch(clientApiUrl(`/api/questions/${questionId}`));
         if (questionRes.ok) {
           const questionData = await questionRes.json();
           setQuestion(questionData.payload?.question || questionData.payload || questionData);
@@ -54,7 +54,7 @@ export default function ViewQuestionPage() {
     }
 
     fetchExamAndQuestion();
-  }, [examId, questionId, token]);
+  }, [examId, questionId, status]);
 
   if (isLoading) {
     return (
@@ -80,9 +80,8 @@ export default function ViewQuestionPage() {
     if (!confirm("Are you sure you want to delete this question?")) return;
 
     try {
-      const res = await fetch(`${BASE_URL}/api/questions/${questionId}`, {
+      const res = await fetch(clientApiUrl(`/api/questions/${questionId}`), {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const data = (await res.json()) as { message?: string };
       if (!res.ok) {
@@ -137,13 +136,11 @@ export default function ViewQuestionPage() {
               <Ban size={14} className="mr-2 text-slate-400" /> Immutable
             </Button>
             
-            <Button
-              disabled
-              className="bg-[#175FFF] text-white font-mono text-[12px] font-bold h-[34px] px-5 rounded-none shadow-none opacity-60 cursor-not-allowed"
-              title="Question edit screen is not implemented yet."
-            >
-              <Edit2 size={14} className="mr-2" /> Edit
-            </Button>
+            <Link href={`/admin/exams/${examId}/questions/${questionId}/edit`}>
+              <Button className="bg-[#175FFF] text-white font-mono text-[12px] font-bold h-[34px] px-5 rounded-none shadow-none">
+                <Edit2 size={14} className="mr-2" /> Edit
+              </Button>
+            </Link>
             
             <Button
               onClick={handleDeleteQuestion}

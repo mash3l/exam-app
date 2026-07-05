@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Clock, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation"; // عشان نقرأ الدبلومة الحالية
@@ -29,7 +30,7 @@ export function ExamCard({ title, description, questions, duration, image, showS
       
       {/* اللوجو */}
       <div className="w-[100px] h-[100px] bg-[#F8F9FF] flex items-center justify-center shrink-0 border border-gray-50">
-        <img src={image} alt={title} className="w-14 h-14 object-contain" />
+        <Image src={image} alt={title} width={56} height={56} className="object-contain" unoptimized />
       </div>
 
       {/* المحتوى */}

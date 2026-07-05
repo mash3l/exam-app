@@ -103,12 +103,6 @@ export async function attemptExternalLogin(input: {
     const parsed = parseJsonSafe(rawText);
 
     if (!res.ok) {
-      console.error("[external-auth-login] HTTP error", {
-        url: LOGIN_URL,
-        httpStatus: res.status,
-        responseBodyRaw: rawText,
-        responseBodyParsed: parsed,
-      });
       return {
         ok: false,
         message: extractBackendMessage(parsed, rawText, res.status),
@@ -119,11 +113,6 @@ export async function attemptExternalLogin(input: {
     }
 
     if (isLogicalLoginFailure(parsed)) {
-      console.error("[external-auth-login] HTTP 200 but logical failure", {
-        url: LOGIN_URL,
-        responseBodyParsed: parsed,
-        responseBodyRaw: rawText,
-      });
       return {
         ok: false,
         message: extractBackendMessage(parsed, rawText, res.status),
@@ -135,11 +124,6 @@ export async function attemptExternalLogin(input: {
 
     const token = extractAccessTokenFromLoginResponse(parsed);
     if (!token) {
-      console.error("[external-auth-login] missing token in success body", {
-        url: LOGIN_URL,
-        responseBodyParsed: parsed,
-        responseBodyRaw: rawText,
-      });
       return {
         ok: false,
         message:
@@ -152,7 +136,6 @@ export async function attemptExternalLogin(input: {
 
     return { ok: true, token };
   } catch (err) {
-    console.error("[external-auth-login] network failure", err);
     const msg =
       err instanceof TypeError && err.message === "Failed to fetch"
         ? "Could not reach the login API (network / CORS)."

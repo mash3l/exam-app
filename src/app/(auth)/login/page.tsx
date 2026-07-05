@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signIn, getSession } from "next-auth/react"; 
+import { signIn, getSession } from "next-auth/react";
 import { LoginForm, type LoginFormValues } from "@/features/auth/components/LoginForm";
 import type { AppSession } from "@/types/auth";
-
-const skipAuth = process.env.NEXT_PUBLIC_SKIP_AUTH === "true";
 
 function resolvePostLoginPath(role: unknown) {
   const normalizedRole = String(role ?? "").toUpperCase();
@@ -21,43 +19,25 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  useEffect(() => {
-    if (!skipAuth) return;
-    void signIn("credentials", {
-      email: "",
-      password: "",
-      callbackUrl: "/admin/diplomas",
-      redirect: true,
-    });
-  }, []);
-
-  if (skipAuth) {
-    return (
-      <div className="mx-auto w-full max-w-[380px] py-16 text-center text-sm font-medium text-slate-600">
-        جاري فتح التطبيق بدون تسجيل دخول يدوي (وضع التطوير)…
-      </div>
-    );
-  }
-
   async function handleValidatedSubmit(values: LoginFormValues) {
     if (isAuthenticating) return;
     setIsAuthenticating(true);
     setErrorMessage("");
-    
+
     try {
       const result = await signIn("credentials", {
         email: values.username,
         password: values.password,
-        redirect: false, // قفلنا التوجيه التلقائي عشان نعمله إحنا تحت
+        redirect: false,
       });
-      
+
       if (result?.error) {
         setErrorMessage(
           "Sign-in failed. Please check your email and password and try again."
         );
         return;
       }
-      
+
       if (result?.ok) {
         const session = await getSession();
         const typedSession = session as AppSession | null;
@@ -76,15 +56,15 @@ export default function LoginPage() {
       </div>
 
       {errorMessage ? (
-        <p className="mb-4 text-center text-[11px] font-bold text-red-500 bg-red-50 py-2 border border-red-100 rounded-sm" role="alert">
+        <p
+          className="mb-4 text-center text-[11px] font-bold text-red-500 bg-red-50 py-2 border border-red-100 rounded-sm"
+          role="alert"
+        >
           {errorMessage}
         </p>
       ) : null}
 
-      <LoginForm
-        onValidatedSubmit={handleValidatedSubmit}
-        submitDisabled={isAuthenticating}
-      />
+      <LoginForm onValidatedSubmit={handleValidatedSubmit} submitDisabled={isAuthenticating} />
 
       <div className="mt-8 text-center text-xs font-medium text-gray-400">
         Don&apos;t have an account?{" "}

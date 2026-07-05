@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,6 +15,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/ui/form";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 type OtpStepValues = z.infer<typeof confirmEmailVerificationBodySchema>;
 
@@ -22,9 +24,15 @@ interface Props {
   email: string;
   onNext: (values: OtpStepValues) => void | Promise<void>;
   onPrev: () => void;
+  onResend: () => void | Promise<void>;
 }
 
-export function OtpStep({ email, onNext, onPrev }: Props) {
+const RESEND_COOLDOWN_SECONDS = 60;
+
+export function OtpStep({ email, onNext, onPrev, onResend }: Props) {
+  const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
+  const [isResending, setIsResending] = useState(false);
+
   const form = useForm<OtpStepValues>({
     resolver: zodResolver(confirmEmailVerificationBodySchema),
     defaultValues: { email, code: "" },
@@ -33,6 +41,28 @@ export function OtpStep({ email, onNext, onPrev }: Props) {
   useEffect(() => {
     form.setValue("email", email);
   }, [email, form]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((value) => (value > 0 ? value - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  async function handleResend() {
+    if (cooldown > 0 || isResending) return;
+    setIsResending(true);
+    try {
+      await onResend();
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+      toast.success("Verification code resent.");
+    } catch {
+      toast.error("Failed to resend code. Please try again.");
+    } finally {
+      setIsResending(false);
+    }
+  }
 
   return (
     <Form {...form}>
@@ -72,9 +102,34 @@ export function OtpStep({ email, onNext, onPrev }: Props) {
           )}
         />
 
-        <Button type="submit" className="mt-6 h-12 w-full cursor-pointer rounded-none bg-[#175FFF] font-semibold text-white hover:bg-blue-700">
-          Verify Code
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          className="mt-6 h-12 w-full cursor-pointer rounded-none bg-[#175FFF] font-semibold text-white hover:bg-blue-700 flex items-center justify-center gap-2"
+        >
+          {form.formState.isSubmitting ? (
+            <>
+              <Loader2 className="animate-spin" size={18} /> Verifying...
+            </>
+          ) : (
+            "Verify Code"
+          )}
         </Button>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => void handleResend()}
+            disabled={cooldown > 0 || isResending}
+            className="cursor-pointer text-xs font-bold text-[#175FFF] transition-colors hover:underline disabled:cursor-not-allowed disabled:text-gray-400"
+          >
+            {cooldown > 0
+              ? `Resend code in ${cooldown}s`
+              : isResending
+                ? "Sending..."
+                : "Resend code"}
+          </button>
+        </div>
 
         <div className="mt-4 text-center">
           <button

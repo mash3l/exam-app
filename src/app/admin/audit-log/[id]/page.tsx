@@ -9,15 +9,14 @@ import { toast } from "sonner";
 import type { AppSession } from "@/types/auth";
 import type { AuditLog, AuditMetadata } from "@/types/audit";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 export default function AuditLogViewPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const typedSession = session as AppSession | null;
-  const token = typedSession?.accessToken;
   const isSuperAdmin = typedSession?.user?.role === "SUPER_ADMIN";
 
   const [log, setLog] = useState<AuditLog | null>(null);
@@ -25,13 +24,11 @@ export default function AuditLogViewPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!token || !id) return;
+    if (status !== "authenticated" || !id) return;
     
     async function fetchLog() {
         try {
-          const res = await fetch(`${BASE_URL}/api/admin/audit-logs/${id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await fetch(clientApiUrl(`/api/admin/audit-logs/${id}`));
           const data = (await res.json()) as {
             message?: string;
             payload?: { auditLog?: AuditLog; data?: AuditLog } | AuditLog;
@@ -59,7 +56,7 @@ export default function AuditLogViewPage() {
       }
 
     fetchLog();
-  }, [id, token, router]);
+  }, [id, status, router]);
 
   const handleDelete = async () => {
     if (!isSuperAdmin) {
@@ -69,9 +66,8 @@ export default function AuditLogViewPage() {
     if (!confirm("Are you sure you want to delete this log?")) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/admin/audit-logs/${id}`, {
+      const res = await fetch(clientApiUrl(`/api/admin/audit-logs/${id}`), {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         toast.success("Log deleted successfully");

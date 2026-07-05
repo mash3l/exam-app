@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import type { Exam } from "@/types/models";
 import type { AppSession } from "@/types/auth";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 type Answer = {
   id: string;
@@ -26,9 +26,9 @@ type QuestionItem = {
 export default function CreateQuestionPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const typedSession = session as AppSession | null;
-  const token = typedSession?.accessToken;
+  
   const examId = params.id as string;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -46,10 +46,10 @@ export default function CreateQuestionPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (status !== "authenticated") return;
     async function fetchExams() {
       try {
-        const res = await fetch(`${BASE_URL}/api/exams`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(clientApiUrl("/api/exams"));
         const data = await res.json();
         if (res.ok) {
           const responsePayload = data.payload?.exams || data.payload?.data || data.payload || [];
@@ -63,7 +63,7 @@ export default function CreateQuestionPage() {
       }
     }
     fetchExams();
-  }, [token]);
+  }, [status]);
 
   const activeQuestionIndex = questions.findIndex(q => q.id === activeQId);
   const activeQuestion = questions[activeQuestionIndex];
@@ -154,13 +154,12 @@ export default function CreateQuestionPage() {
         })),
       };
 
-      const ENDPOINT = `${BASE_URL}/api/questions/exam/${selectedExamId}/bulk`;
+      const ENDPOINT = clientApiUrl(`/api/questions/exam/${selectedExamId}/bulk`);
 
       const res = await fetch(ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });

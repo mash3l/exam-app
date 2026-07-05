@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 // ضفنا دول عشان نقرأ الـ Token من الرابط ونعمل Redirect للوجين
+import { API_BASE_URL } from "@/lib/api-base";
 import { useSearchParams, useRouter } from "next/navigation"; 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,7 +47,7 @@ export function NewPasswordStep() {
     }
 
     try {
-      const res = await fetch("https://exam-app.elevate-bootcamp.cloud/api/auth/reset-password", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -11,14 +11,13 @@ import { AdminActionDropdown } from "@/features/admin/components/AdminActionDrop
 import type { Exam, Question } from "@/types/models";
 import type { AppSession } from "@/types/auth";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 export default function ViewExamPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const typedSession = session as AppSession | null;
-  const token = typedSession?.accessToken;
   const isSuperAdmin = typedSession?.user?.role === "SUPER_ADMIN";
 
   const examId = params.id;
@@ -28,18 +27,13 @@ export default function ViewExamPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!token || !examId) return;
+    if (status !== "authenticated" || !examId) return;
 
     async function fetchExamAndQuestions() {
       try {
-        const examRes = await fetch(`${BASE_URL}/api/exams/${examId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const examRes = await fetch(clientApiUrl(`/api/exams/${examId}`));
+        const questionsRes = await fetch(clientApiUrl(`/api/questions/exam/${examId}`));
         const examData = await examRes.json();
-
-        const questionsRes = await fetch(`${BASE_URL}/api/questions/exam/${examId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
         const questionsData = await questionsRes.json();
 
         if (examRes.ok) {
@@ -63,7 +57,7 @@ export default function ViewExamPage() {
     }
 
     fetchExamAndQuestions();
-  }, [examId, token]);
+  }, [examId, status]);
 
   if (isLoading) {
     return (
@@ -89,9 +83,8 @@ export default function ViewExamPage() {
     if (!confirm("Are you sure you want to delete this exam?")) return;
 
     try {
-      const res = await fetch(`${BASE_URL}/api/exams/${examId}`, {
+      const res = await fetch(clientApiUrl(`/api/exams/${examId}`), {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const data = (await res.json()) as { message?: string };
 

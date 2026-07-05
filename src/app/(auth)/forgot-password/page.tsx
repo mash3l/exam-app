@@ -1,23 +1,12 @@
 "use client";
 
-import { useState } from "react";
-// استيراد المكونات اللي لسه عاملينها
-import { EmailStep } from "@/features/auth/components/forgot-password-steps/EmailStep";
-import { SuccessStep } from "@/features/auth/components/forgot-password-steps/SuccessStep";
-import { NewPasswordStep } from "@/features/auth/components/forgot-password-steps/NewPasswordStep";
+import { Suspense } from "react";
+import ForgotPasswordContent from "./ForgotPasswordContent";
 
-export default function ForgotPasswordPage() {
-  const [step, setStep] = useState(1);
-
-  // دوال التنقل
-  const nextStep = () => setStep((prev) => (prev < 3 ? prev + 1 : prev));
-  const prevStep = () => setStep((prev) => (prev > 1 ? prev - 1 : prev));
-
+export default function ForgotPasswordRoute() {
   return (
-    <div className="w-full max-w-[380px] flex flex-col mx-auto py-4">
-      {step === 1 && <EmailStep nextStep={nextStep} />}
-      {step === 2 && <SuccessStep prevStep={prevStep} nextStep={nextStep} />}
-      {step === 3 && <NewPasswordStep />}
-    </div>
+    <Suspense fallback={<div className="py-16 text-center text-sm text-slate-500">Loading...</div>}>
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }

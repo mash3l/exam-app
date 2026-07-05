@@ -106,6 +106,12 @@ export function RegisterForm() {
             setEmailVerified(false);
             setStep("email");
           }}
+          onResend={async () => {
+            const res = await sendEmailVerification(normalizeEmail(email));
+            if (!res.ok) {
+              throw new Error(res.message);
+            }
+          }}
           onNext={async (values) => {
             setError("");
             registerRoot.clearErrors("root");
@@ -170,21 +176,18 @@ export function RegisterForm() {
               });
 
               if (!res.ok) {
-                console.error("[register] API rejected request", {
-                  httpStatus: res.status,
-                  rawBody: res.data,
-                  bodyJson: JSON.stringify(res.data, null, 2),
-                });
                 if (Object.keys(res.fieldFailures).length > 0) {
-                  console.error("[register] fields that failed validation:", res.fieldFailures);
+                  registerRoot.setError("root", {
+                    message: `${res.message} (${Object.keys(res.fieldFailures).join(", ")})`,
+                  });
+                } else {
+                  registerRoot.setError("root", { message: res.message });
                 }
-                registerRoot.setError("root", { message: res.message });
                 return;
               }
 
               router.push("/login");
             } catch (err) {
-              console.error("[register] unexpected error", err);
               const fallback =
                 err instanceof Error ? err.message : "Something went wrong. Please try again.";
               registerRoot.setError("root", { message: fallback });

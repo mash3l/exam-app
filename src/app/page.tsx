@@ -13,7 +13,7 @@ export default async function Home() {
   const session = await getServerSession(authOptions);
   const userRole = (session?.user as { role?: unknown } | undefined)?.role;
 
-  if ((session as { accessToken?: string } | null)?.accessToken) {
+  if (session?.user) {
     redirect(resolvePostLoginPath(userRole));
   }
 

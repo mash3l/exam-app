@@ -11,16 +11,15 @@ import { AdminDeleteConfirmModal } from "@/features/admin/components/AdminDelete
 import type { AppSession } from "@/types/auth";
 import type { Diploma } from "@/types/models";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 export default function ViewDiplomaPage() {
   const router = useRouter();
   const params = useParams();
   const diplomaId = params.id as string;
   
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const typedSession = session as AppSession | null;
-  const token = typedSession?.accessToken;
   const isSuperAdmin = typedSession?.user?.role === "SUPER_ADMIN";
 
   const [diploma, setDiploma] = useState<Diploma | null>(null);
@@ -30,13 +29,11 @@ export default function ViewDiplomaPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!token || !diplomaId) return;
+    if (status !== "authenticated" || !diplomaId) return;
 
     async function fetchDiploma() {
       try {
-        const res = await fetch(`${BASE_URL}/api/diplomas/${diplomaId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(clientApiUrl(`/api/diplomas/${diplomaId}`));
         const data = await res.json();
 
         if (res.ok) {
@@ -53,7 +50,7 @@ export default function ViewDiplomaPage() {
       }
     }
     fetchDiploma();
-  }, [diplomaId, token]);
+  }, [diplomaId, status]);
 
   const handleDelete = async () => {
     if (!isSuperAdmin) {
@@ -62,9 +59,8 @@ export default function ViewDiplomaPage() {
     }
     setIsDeleting(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/diplomas/${diplomaId}`, {
+      const res = await fetch(clientApiUrl(`/api/diplomas/${diplomaId}`), {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         toast.success("Diploma deleted successfully");

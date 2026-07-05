@@ -14,7 +14,9 @@ import {
 import { QuizHeader } from "@/features/exams/components/quiz/QuizHeader";
 import { QuestionCard } from "@/features/exams/components/quiz/QuestionCard";
 import { QuizResults, type QuizResultsPayload } from "@/features/exams/components/quiz/QuizResults";
+import { useSubmitExam } from "@/features/exams/hooks/useSubmitExam";
 import { Form } from "@/shared/ui/form";
+import { toast } from "sonner";
 
 function buildOptionsFromQuestion(q: Record<string, unknown>) {
   const raw = (q.answers ?? q.options ?? q.choices ?? []) as unknown[];
@@ -65,6 +67,8 @@ function QuizContent() {
 
   const { data: apiQuestions, isLoading, isError } = useExamQuestions(examId);
   const questions = useMemo(() => (apiQuestions || []) as Record<string, unknown>[], [apiQuestions]);
+
+  const submitExamMutation = useSubmitExam();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showResults, setShowResults] = useState(false);
@@ -138,48 +142,19 @@ function QuizContent() {
         answerId: a.answerId,
       }));
 
-    // ==========================================
-    //   التعديل هنا: توليد بيانات حقيقية (Mock) للنتيجة 
-    // ==========================================
-    const total = questions.length || 1;
-
-    const mockAnalytics = questions.map((q, idx) => {
-      const qId = stableQuestionId(q, idx);
-      const userAnswer = formattedAnswers.find((a) => a.questionId === qId);
-      const options = buildOptionsFromQuestion(q);
-      
-      // بنجيب نص الإجابة اللي اليوزر اختارها
-      const selectedOptionText = options.find((o) => o.id === userAnswer?.answerId)?.label;
-      
-      // بنفترض إن الاختيار الأول دايماً هو الصح عشان نجرب بس
-      const correctOptionText = options[0]?.label; 
-      const isCorrect = userAnswer?.answerId === options[0]?.id;
-
-      return {
-        questionId: qId,
-        questionText: String(q?.question ?? q?.title ?? q?.questionText ?? "Unknown Question"),
-        isCorrect: isCorrect,
-        selectedAnswer: selectedOptionText,
-        correctAnswer: correctOptionText,
-      };
-    });
-
-    const correctCount = mockAnalytics.filter((a) => a.isCorrect).length;
-    const wrongCount = total - correctCount;
-
-    const mockResults: QuizResultsPayload = {
-      submission: {
-        correctAnswers: correctCount,
-        wrongAnswers: wrongCount,
-        totalQuestions: total,
-      },
-      analytics: mockAnalytics, // الداتا دي هي اللي هتملا القايمة اللي على اليمين
-    };
-    // ==========================================
-
-    await new Promise((r) => setTimeout(r, 600));
-    setApiResults(mockResults);
-    setIsSubmitting(false);
+    try {
+      const results = await submitExamMutation.mutateAsync({
+        examId: values.examId,
+        answers: formattedAnswers,
+        startedAt: values.startedAt,
+      });
+      setApiResults(results);
+    } catch (error) {
+      toast.error("Failed to submit exam. Please try again.");
+      setShowResults(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   useEffect(() => {

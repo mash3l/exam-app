@@ -10,13 +10,11 @@ import type { AppSession } from "@/types/auth";
 import { ClearLogsModal } from "@/shared/components/audit-log/ClearLogsModal";
 import { AuditLogFilters } from "@/shared/components/audit-log/AuditLogFilters";
 import { AuditLogTable } from "@/shared/components/audit-log/AuditLogTable";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 export default function AuditLogPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const typedSession = session as AppSession | null;
-  const token = typedSession?.accessToken;
   const userRole = typedSession?.user?.role;
   const isSuperAdmin = userRole === "SUPER_ADMIN";
 
@@ -38,7 +36,7 @@ export default function AuditLogPage() {
 
   // ─── FETCH LOGS ───
   const fetchLogs = useCallback(async () => {
-    if (!token) return;
+    if (status !== "authenticated") return;
     setIsLoading(true);
     try {
       const queryParams = new URLSearchParams({ page: page.toString(), limit: "12" });
@@ -46,9 +44,7 @@ export default function AuditLogPage() {
       if (actionFilter) queryParams.append("action", actionFilter);
       if (searchQuery) queryParams.append("search", searchQuery);
 
-      const res = await fetch(`${BASE_URL}/api/admin/audit-logs?${queryParams.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch(clientApiUrl("/api/admin/audit-logs", queryParams));
       const data = (await res.json()) as {
         message?: string;
         payload?: { data?: AuditLog[]; metadata?: Metadata };
@@ -65,7 +61,7 @@ export default function AuditLogPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, page, category, actionFilter, searchQuery]);
+  }, [status, page, category, actionFilter, searchQuery]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -81,9 +77,8 @@ export default function AuditLogPage() {
     if (!confirm("Are you sure you want to delete this log entry?")) return;
     setActiveDropdown(null);
     try {
-      const res = await fetch(`${BASE_URL}/api/admin/audit-logs/${id}`, {
+      const res = await fetch(clientApiUrl(`/api/admin/audit-logs/${id}`), {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) { toast.success("Entry deleted"); fetchLogs(); }
       else { toast.error("Failed to delete log"); }
@@ -97,9 +92,8 @@ export default function AuditLogPage() {
     }
     setIsClearing(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/admin/audit-logs`, {
+      const res = await fetch(clientApiUrl("/api/admin/audit-logs"), {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         toast.success(`Cleared all audit logs`);

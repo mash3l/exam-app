@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Elevate Exam App
 
-## Getting Started
+Next.js 16 student/admin exam platform with NextAuth, TanStack Query, React Hook Form, Zod, and shadcn/ui.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router, `proxy.ts` route protection)
+- NextAuth (JWT credentials)
+- TanStack Query
+- React Hook Form + Zod
+- Tailwind CSS + shadcn/ui
+- Sonner toasts
+
+## Setup
 
 ```bash
+npm install
+cp .env.example .env.local   # if present; otherwise create .env.local manually
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
 
-## Learn More
+## Environment variables
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXTAUTH_SECRET` | Yes | Secret for NextAuth JWT encryption |
+| `NEXTAUTH_URL` | Yes | App URL (e.g. `http://localhost:3000`) |
+| `NEXT_PUBLIC_AUTH_LOGIN_IDENTIFIER_KEY` | No | `email` or `username` for login API body (default: `username`) |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+API base URL is configured in `src/lib/api-base.ts`. Authenticated browser requests go through the BFF proxy at `/api/backend/*` so access tokens are not exposed to client JavaScript.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project structure
 
-## Deploy on Vercel
+- `src/app` — routes (auth, dashboard, admin)
+- `src/features` — domain modules (auth, diplomas, exams, admin)
+- `src/shared` — UI primitives and layout
+- `src/proxy.ts` — route protection and role redirects
+- `src/auth.ts` — NextAuth configuration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Roles
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `STUDENT` — diplomas, exams, account
+- `ADMIN` / `SUPER_ADMIN` — admin CRUD, audit log

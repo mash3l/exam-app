@@ -9,9 +9,24 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
 
-  /** لتخطي تسجيل الدخول يدوياً في التطوير فقط */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "exam-app.elevate-bootcamp.cloud",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "placehold.co",
+      },
+    ],
+  },
+
   env: {
-    NEXT_PUBLIC_SKIP_AUTH: process.env.NEXT_PUBLIC_SKIP_AUTH ?? "false",
     NEXTAUTH_URL:
       process.env.NEXTAUTH_URL?.trim() ||
       (process.env.VERCEL_URL

@@ -11,13 +11,13 @@ import { toast } from "sonner";
 import type { Diploma } from "@/types/models";
 import type { AppSession } from "@/types/auth";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 export default function CreateExamPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const typedSession = session as AppSession | null;
-  const token = typedSession?.accessToken;
+  
 
   // States
   const [isLoading, setIsLoading] = useState(true);
@@ -37,13 +37,11 @@ export default function CreateExamPage() {
 
   // جلب الدبلومات عشان تظهر في الـ Dropdown
   useEffect(() => {
-    if (!token) return;
+    if (status !== "authenticated") return;
 
     async function fetchDiplomas() {
       try {
-        const res = await fetch(`${BASE_URL}/api/diplomas`, { 
-          headers: { Authorization: `Bearer ${token}` } 
-        });
+        const res = await fetch(clientApiUrl("/api/diplomas"));
         if (res.ok) {
           const dipData = await res.json();
           const responsePayload = dipData.payload?.data || dipData.payload || [];
@@ -56,7 +54,7 @@ export default function CreateExamPage() {
       }
     }
     fetchDiplomas();
-  }, [token]);
+  }, [status]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,9 +85,8 @@ export default function CreateExamPage() {
         const formData = new FormData();
         formData.append("image", imageFile); 
         
-        const uploadRes = await fetch(`${BASE_URL}/api/upload`, {
+        const uploadRes = await fetch(clientApiUrl("/api/upload"), {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
 
@@ -104,11 +101,10 @@ export default function CreateExamPage() {
       }
 
       // إضافة الامتحان الجديد (POST Request)
-      const createRes = await fetch(`${BASE_URL}/api/exams`, {
+      const createRes = await fetch(clientApiUrl("/api/exams"), {
         method: "POST", 
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           title,

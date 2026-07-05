@@ -27,11 +27,10 @@ type ProfileFormValues = z.infer<typeof accountProfileFormSchema>;
 type RequestEmailValues = z.infer<typeof requestEmailChangeBodySchema>;
 type ConfirmEmailValues = z.infer<typeof confirmEmailChangeBodySchema>;
 
-const BASE_URL = "https://exam-app.elevate-bootcamp.cloud";
+import { clientApiUrl } from "@/lib/client-api";
 
 export default function ProfilePage() {
-  const { data: session } = useSession(); // سحب بيانات الجلسة والتوكن
-  const token = session?.accessToken;
+  const { data: session, status } = useSession();
 
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [readOnlyData, setReadOnlyData] = useState({ username: "", email: "" });
@@ -60,15 +59,14 @@ export default function ProfilePage() {
   // 1. جلب بيانات اليوزر أول ما يفتح الصفحة
   useEffect(() => {
     // اتأكد إن التوكن موجود قبل ما نبعت
-    if (!token) return;
+    if (status !== "authenticated") return;
     
     async function fetchProfile() {
       try {
-        const res = await fetch("https://exam-app.elevate-bootcamp.cloud/api/users/profile", {
-          method: "GET", // ضيفنا دي للتأكيد
-          headers: { 
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json" 
+        const res = await fetch(clientApiUrl("/api/users/profile"), {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
           },
         });
 
@@ -89,22 +87,21 @@ export default function ProfilePage() {
             email: userData.email || "" 
           });
         }
-      } catch (error) {
-        console.error("Fetch Error:", error);
+      } catch {
+        toast.error("Failed to load profile");
       } finally {
         setIsLoadingProfile(false);
       }
     }
     fetchProfile();
-  }, [token, profileForm]);
+  }, [status, profileForm]);
   // 2. تحديث الاسم ورقم التليفون
   async function onProfileSubmit(values: ProfileFormValues) {
     try {
-      const res = await fetch(`${BASE_URL}/api/users/profile`, {
+      const res = await fetch(clientApiUrl("/api/users/profile"), {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(values),
       });
@@ -119,11 +116,10 @@ export default function ProfilePage() {
   // 3. طلب تغيير الإيميل (إرسال الكود)
   async function onRequestEmailSubmit(values: RequestEmailValues) {
     try {
-      const res = await fetch(`${BASE_URL}/api/users/email/request`, {
+      const res = await fetch(clientApiUrl("/api/users/email/request"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ newEmail: values.newEmail }),
       });
@@ -146,11 +142,10 @@ export default function ProfilePage() {
   // 4. تأكيد تغيير الإيميل بالكود
   async function onConfirmEmailSubmit(values: ConfirmEmailValues) {
     try {
-      const res = await fetch(`${BASE_URL}/api/users/email/confirm`, {
+      const res = await fetch(clientApiUrl("/api/users/email/confirm"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         // غالباً الباك إند بيحتاج الكود وربما الإيميل الجديد، عدلها لو الباك إند طالب حاجة تانية
         body: JSON.stringify({ code: values.code, newEmail: pendingNewEmail }), 
@@ -175,9 +170,8 @@ export default function ProfilePage() {
   async function handleDeleteAccount() {
     setIsDeleting(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/users/account`, {
+      const res = await fetch(clientApiUrl("/api/users/account"), {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error("Failed to delete account");
