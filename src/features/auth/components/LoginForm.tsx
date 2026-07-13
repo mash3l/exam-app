@@ -49,12 +49,12 @@ export function LoginForm({ onValidatedSubmit, submitDisabled = false }: LoginFo
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-[13px] font-bold text-slate-700">Email or username</FormLabel>
+              <FormLabel className="text-[13px] font-bold text-slate-700">Username</FormLabel>
               <FormControl>
                 <Input
                   {...field}
                   autoComplete="username"
-                  placeholder="name@example.com"
+                  placeholder="username"
                   className="h-11 rounded-none bg-white text-gray-700 focus-visible:ring-offset-0 [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_white_inset]"
                 />
               </FormControl>
